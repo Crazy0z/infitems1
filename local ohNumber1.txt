@@ -1,0 +1,4 @@
+local ohNumber1 = -math.huge
+local ohNumber2 = 1
+
+game:GetService("ReplicatedStorage").Events.Summon.PlayerAttemptsSummon:InvokeServer(ohNumber1, ohNumber2)
