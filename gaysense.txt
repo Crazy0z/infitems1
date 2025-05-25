@@ -1,10 +1,13 @@
--- Gamesense UI Library for Roblox
+-- Authentic Gamesense UI Recreation for Roblox
+-- Based on the real Gamesense CSGO cheat interface
+
 local Gamesense = {}
 Gamesense.__index = Gamesense
 
 -- Services
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 
@@ -12,315 +15,353 @@ local CoreGui = game:GetService("CoreGui")
 local Player = Players.LocalPlayer
 local Mouse = Player:GetMouse()
 
--- UI Creation
+-- Authentic Gamesense Colors
+local Colors = {
+    Background = Color3.fromRGB(17, 17, 17),
+    Panel = Color3.fromRGB(22, 22, 22),
+    Border = Color3.fromRGB(60, 60, 60),
+    Text = Color3.fromRGB(205, 205, 205),
+    TextDark = Color3.fromRGB(155, 155, 155),
+    Accent = Color3.fromRGB(150, 200, 255),
+    Green = Color3.fromRGB(150, 255, 150),
+    Red = Color3.fromRGB(255, 100, 100),
+    Orange = Color3.fromRGB(255, 165, 0)
+}
+
+-- Rainbow function for authentic effects
+local function GetRainbowColor(speed)
+    speed = speed or 1
+    local time = tick() * speed
+    local r = math.sin(time) * 127 + 128
+    local g = math.sin(time + 2) * 127 + 128
+    local b = math.sin(time + 4) * 127 + 128
+    return Color3.fromRGB(r, g, b)
+end
+
+-- Main UI Creation
 function Gamesense:CreateWindow(title)
     local Window = {}
+    
+    -- Destroy existing GUI
+    if CoreGui:FindFirstChild("GamesenseUI") then
+        CoreGui.GamesenseUI:Destroy()
+    end
     
     -- Main ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "GamesenseUI"
     ScreenGui.Parent = CoreGui
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ScreenGui.ResetOnSpawn = false
     
-    -- Main Frame
+    -- Main Frame (Authentic Gamesense size and position)
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
     MainFrame.Parent = ScreenGui
-    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Position = UDim2.new(0.3, 0, 0.2, 0)
-    MainFrame.Size = UDim2.new(0, 600, 0, 400)
+    MainFrame.BackgroundColor3 = Colors.Background
+    MainFrame.BorderColor3 = Colors.Border
+    MainFrame.BorderSizePixel = 1
+    MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
+    MainFrame.Size = UDim2.new(0, 700, 0, 500)
     MainFrame.Active = true
     MainFrame.Draggable = true
     
-    -- Corner for main frame
-    local MainCorner = Instance.new("UICorner")
-    MainCorner.CornerRadius = UDim.new(0, 6)
-    MainCorner.Parent = MainFrame
-    
-    -- Title Bar
+    -- Title Bar (Authentic styling)
     local TitleBar = Instance.new("Frame")
     TitleBar.Name = "TitleBar"
     TitleBar.Parent = MainFrame
-    TitleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    TitleBar.BorderSizePixel = 0
-    TitleBar.Size = UDim2.new(1, 0, 0, 30)
+    TitleBar.BackgroundColor3 = Colors.Panel
+    TitleBar.BorderColor3 = Colors.Border
+    TitleBar.BorderSizePixel = 1
+    TitleBar.Size = UDim2.new(1, 0, 0, 25)
     
-    local TitleCorner = Instance.new("UICorner")
-    TitleCorner.CornerRadius = UDim.new(0, 6)
-    TitleCorner.Parent = TitleBar
-    
-    -- Title Text
+    -- Gamesense Logo/Title
     local TitleText = Instance.new("TextLabel")
     TitleText.Name = "TitleText"
     TitleText.Parent = TitleBar
     TitleText.BackgroundTransparency = 1
-    TitleText.Position = UDim2.new(0, 10, 0, 0)
-    TitleText.Size = UDim2.new(1, -50, 1, 0)
-    TitleText.Font = Enum.Font.GothamBold
-    TitleText.Text = title or "Gamesense"
-    TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TitleText.TextSize = 14
+    TitleText.Position = UDim2.new(0, 8, 0, 0)
+    TitleText.Size = UDim2.new(0, 200, 1, 0)
+    TitleText.Font = Enum.Font.Code
+    TitleText.Text = "gamesense"
+    TitleText.TextColor3 = Colors.Text
+    TitleText.TextSize = 13
     TitleText.TextXAlignment = Enum.TextXAlignment.Left
     
-    -- Close Button
+    -- Rainbow effect for title (authentic gamesense feature)
+    local titleRainbow = RunService.Heartbeat:Connect(function()
+        TitleText.TextColor3 = GetRainbowColor(3)
+    end)
+    
+    -- Window controls
+    local MinimizeButton = Instance.new("TextButton")
+    MinimizeButton.Name = "MinimizeButton"
+    MinimizeButton.Parent = TitleBar
+    MinimizeButton.BackgroundTransparency = 1
+    MinimizeButton.Position = UDim2.new(1, -45, 0, 0)
+    MinimizeButton.Size = UDim2.new(0, 20, 1, 0)
+    MinimizeButton.Font = Enum.Font.Code
+    MinimizeButton.Text = "_"
+    MinimizeButton.TextColor3 = Colors.Text
+    MinimizeButton.TextSize = 14
+    
     local CloseButton = Instance.new("TextButton")
     CloseButton.Name = "CloseButton"
     CloseButton.Parent = TitleBar
-    CloseButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
-    CloseButton.BorderSizePixel = 0
-    CloseButton.Position = UDim2.new(1, -25, 0, 5)
-    CloseButton.Size = UDim2.new(0, 20, 0, 20)
-    CloseButton.Font = Enum.Font.GothamBold
-    CloseButton.Text = "×"
-    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    CloseButton.TextSize = 14
+    CloseButton.BackgroundTransparency = 1
+    CloseButton.Position = UDim2.new(1, -20, 0, 0)
+    CloseButton.Size = UDim2.new(0, 20, 1, 0)
+    CloseButton.Font = Enum.Font.Code
+    CloseButton.Text = "X"
+    CloseButton.TextColor3 = Colors.Red
+    CloseButton.TextSize = 12
     
-    local CloseCorner = Instance.new("UICorner")
-    CloseCorner.CornerRadius = UDim.new(0, 3)
-    CloseCorner.Parent = CloseButton
+    -- Tab List (Left side - authentic gamesense style)
+    local TabList = Instance.new("Frame")
+    TabList.Name = "TabList"
+    TabList.Parent = MainFrame
+    TabList.BackgroundColor3 = Colors.Panel
+    TabList.BorderColor3 = Colors.Border
+    TabList.BorderSizePixel = 1
+    TabList.Position = UDim2.new(0, 0, 0, 25)
+    TabList.Size = UDim2.new(0, 140, 1, -25)
     
-    -- Tab Container
-    local TabContainer = Instance.new("Frame")
-    TabContainer.Name = "TabContainer"
-    TabContainer.Parent = MainFrame
-    TabContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    TabContainer.BorderSizePixel = 0
-    TabContainer.Position = UDim2.new(0, 0, 0, 30)
-    TabContainer.Size = UDim2.new(0, 120, 1, -30)
+    -- Content Area
+    local ContentArea = Instance.new("Frame")
+    ContentArea.Name = "ContentArea"
+    ContentArea.Parent = MainFrame
+    ContentArea.BackgroundColor3 = Colors.Background
+    ContentArea.BorderColor3 = Colors.Border
+    ContentArea.BorderSizePixel = 1
+    ContentArea.Position = UDim2.new(0, 140, 0, 25)
+    ContentArea.Size = UDim2.new(1, -140, 1, -25)
     
-    -- Content Container
-    local ContentContainer = Instance.new("Frame")
-    ContentContainer.Name = "ContentContainer"
-    ContentContainer.Parent = MainFrame
-    ContentContainer.BackgroundTransparency = 1
-    ContentContainer.Position = UDim2.new(0, 120, 0, 30)
-    ContentContainer.Size = UDim2.new(1, -120, 1, -30)
-    
-    -- Variables for tabs
+    -- Variables
     Window.Tabs = {}
     Window.CurrentTab = nil
+    Window.Minimized = false
     
-    -- Close button functionality
+    -- Window controls functionality
+    MinimizeButton.MouseButton1Click:Connect(function()
+        Window.Minimized = not Window.Minimized
+        if Window.Minimized then
+            MainFrame:TweenSize(UDim2.new(0, 700, 0, 25), "Out", "Quad", 0.3, true)
+            MinimizeButton.Text = "□"
+        else
+            MainFrame:TweenSize(UDim2.new(0, 700, 0, 500), "Out", "Quad", 0.3, true)
+            MinimizeButton.Text = "_"
+        end
+    end)
+    
     CloseButton.MouseButton1Click:Connect(function()
+        titleRainbow:Disconnect()
         ScreenGui:Destroy()
     end)
     
     -- Tab creation function
-    function Window:CreateTab(name)
+    function Window:CreateTab(name, icon)
         local Tab = {}
         local TabCount = #self.Tabs + 1
         
-        -- Tab Button
+        -- Tab Button (Authentic gamesense tab styling)
         local TabButton = Instance.new("TextButton")
         TabButton.Name = name
-        TabButton.Parent = TabContainer
-        TabButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-        TabButton.BorderSizePixel = 0
-        TabButton.Position = UDim2.new(0, 0, 0, (TabCount - 1) * 35)
-        TabButton.Size = UDim2.new(1, 0, 0, 35)
-        TabButton.Font = Enum.Font.Gotham
-        TabButton.Text = name
-        TabButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-        TabButton.TextSize = 12
+        TabButton.Parent = TabList
+        TabButton.BackgroundColor3 = Colors.Panel
+        TabButton.BorderColor3 = Colors.Border
+        TabButton.BorderSizePixel = 1
+        TabButton.Position = UDim2.new(0, 5, 0, (TabCount - 1) * 30 + 5)
+        TabButton.Size = UDim2.new(1, -10, 0, 25)
+        TabButton.Font = Enum.Font.Code
+        TabButton.Text = (icon and icon .. " " or "") .. name
+        TabButton.TextColor3 = Colors.TextDark
+        TabButton.TextSize = 11
+        TabButton.TextXAlignment = Enum.TextXAlignment.Left
         
-        -- Tab Content
+        -- Tab Content Container
         local TabContent = Instance.new("ScrollingFrame")
         TabContent.Name = name .. "Content"
-        TabContent.Parent = ContentContainer
+        TabContent.Parent = ContentArea
         TabContent.BackgroundTransparency = 1
         TabContent.BorderSizePixel = 0
         TabContent.Size = UDim2.new(1, 0, 1, 0)
-        TabContent.CanvasSize = UDim2.new(0, 0, 2, 0)
-        TabContent.ScrollBarThickness = 4
-        TabContent.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80)
+        TabContent.CanvasSize = UDim2.new(0, 0, 0, 0)
+        TabContent.ScrollBarThickness = 6
+        TabContent.ScrollBarImageColor3 = Colors.Border
         TabContent.Visible = false
         
-        local TabLayout = Instance.new("UIListLayout")
-        TabLayout.Parent = TabContent
-        TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        TabLayout.Padding = UDim.new(0, 5)
+        -- Content Layout
+        local ContentLayout = Instance.new("UIListLayout")
+        ContentLayout.Parent = TabContent
+        ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        ContentLayout.Padding = UDim.new(0, 8)
         
-        -- Tab functionality
-        Tab.Elements = {}
+        local ContentPadding = Instance.new("UIPadding")
+        ContentPadding.Parent = TabContent
+        ContentPadding.PaddingTop = UDim.new(0, 10)
+        ContentPadding.PaddingLeft = UDim.new(0, 10)
+        ContentPadding.PaddingRight = UDim.new(0, 10)
+        
+        -- Auto-resize canvas
+        ContentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            TabContent.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y + 20)
+        end)
+        
         Tab.Content = TabContent
+        Tab.Button = TabButton
+        Tab.Elements = {}
         
+        -- Tab selection
         TabButton.MouseButton1Click:Connect(function()
-            -- Hide all tabs
+            -- Deselect all tabs
             for _, tab in pairs(self.Tabs) do
                 tab.Content.Visible = false
-                tab.Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-                tab.Button.TextColor3 = Color3.fromRGB(200, 200, 200)
+                tab.Button.BackgroundColor3 = Colors.Panel
+                tab.Button.TextColor3 = Colors.TextDark
+                tab.Button.BorderColor3 = Colors.Border
             end
             
-            -- Show current tab
+            -- Select current tab
             TabContent.Visible = true
-            TabButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-            TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            TabButton.BackgroundColor3 = Colors.Background
+            TabButton.TextColor3 = Colors.Text
+            TabButton.BorderColor3 = Colors.Accent
             self.CurrentTab = Tab
         end)
         
-        Tab.Button = TabButton
         table.insert(self.Tabs, Tab)
         
-        -- Show first tab by default
+        -- Auto-select first tab
         if TabCount == 1 then
-            TabButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-            TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
             TabContent.Visible = true
+            TabButton.BackgroundColor3 = Colors.Background
+            TabButton.TextColor3 = Colors.Text
+            TabButton.BorderColor3 = Colors.Accent
             self.CurrentTab = Tab
         end
         
-        -- Element creation functions
-        function Tab:CreateToggle(name, callback)
-            local Toggle = Instance.new("Frame")
-            Toggle.Name = name
-            Toggle.Parent = self.Content
-            Toggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            Toggle.BorderSizePixel = 0
-            Toggle.Size = UDim2.new(1, -10, 0, 30)
+        -- Checkbox/Toggle (Authentic gamesense style)
+        function Tab:CreateCheckbox(name, default, callback)
+            local Checkbox = Instance.new("Frame")
+            Checkbox.Name = name
+            Checkbox.Parent = self.Content
+            Checkbox.BackgroundTransparency = 1
+            Checkbox.Size = UDim2.new(1, -20, 0, 20)
             
-            local ToggleCorner = Instance.new("UICorner")
-            ToggleCorner.CornerRadius = UDim.new(0, 4)
-            ToggleCorner.Parent = Toggle
+            local CheckButton = Instance.new("TextButton")
+            CheckButton.Parent = Checkbox
+            CheckButton.BackgroundColor3 = Colors.Panel
+            CheckButton.BorderColor3 = Colors.Border
+            CheckButton.BorderSizePixel = 1
+            CheckButton.Size = UDim2.new(0, 12, 0, 12)
+            CheckButton.Position = UDim2.new(0, 0, 0, 4)
+            CheckButton.Text = ""
             
-            local ToggleLabel = Instance.new("TextLabel")
-            ToggleLabel.Parent = Toggle
-            ToggleLabel.BackgroundTransparency = 1
-            ToggleLabel.Position = UDim2.new(0, 10, 0, 0)
-            ToggleLabel.Size = UDim2.new(1, -50, 1, 0)
-            ToggleLabel.Font = Enum.Font.Gotham
-            ToggleLabel.Text = name
-            ToggleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            ToggleLabel.TextSize = 12
-            ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+            local CheckMark = Instance.new("TextLabel")
+            CheckMark.Parent = CheckButton
+            CheckMark.BackgroundTransparency = 1
+            CheckMark.Size = UDim2.new(1, 0, 1, 0)
+            CheckMark.Font = Enum.Font.Code
+            CheckMark.Text = default and "✓" or ""
+            CheckMark.TextColor3 = Colors.Green
+            CheckMark.TextSize = 10
             
-            local ToggleButton = Instance.new("TextButton")
-            ToggleButton.Parent = Toggle
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
-            ToggleButton.BorderSizePixel = 0
-            ToggleButton.Position = UDim2.new(1, -35, 0, 5)
-            ToggleButton.Size = UDim2.new(0, 30, 0, 20)
-            ToggleButton.Text = ""
+            local CheckLabel = Instance.new("TextLabel")
+            CheckLabel.Parent = Checkbox
+            CheckLabel.BackgroundTransparency = 1
+            CheckLabel.Position = UDim2.new(0, 18, 0, 0)
+            CheckLabel.Size = UDim2.new(1, -18, 1, 0)
+            CheckLabel.Font = Enum.Font.Code
+            CheckLabel.Text = name
+            CheckLabel.TextColor3 = Colors.Text
+            CheckLabel.TextSize = 11
+            CheckLabel.TextXAlignment = Enum.TextXAlignment.Left
             
-            local ButtonCorner = Instance.new("UICorner")
-            ButtonCorner.CornerRadius = UDim.new(0, 10)
-            ButtonCorner.Parent = ToggleButton
+            local checked = default or false
             
-            local ToggleCircle = Instance.new("Frame")
-            ToggleCircle.Parent = ToggleButton
-            ToggleCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            ToggleCircle.BorderSizePixel = 0
-            ToggleCircle.Position = UDim2.new(0, 2, 0, 2)
-            ToggleCircle.Size = UDim2.new(0, 16, 0, 16)
-            
-            local CircleCorner = Instance.new("UICorner")
-            CircleCorner.CornerRadius = UDim.new(1, 0)
-            CircleCorner.Parent = ToggleCircle
-            
-            local toggled = false
-            
-            ToggleButton.MouseButton1Click:Connect(function()
-                toggled = not toggled
-                
-                if toggled then
-                    ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
-                    ToggleCircle:TweenPosition(UDim2.new(1, -18, 0, 2), "Out", "Quad", 0.2, true)
-                else
-                    ToggleButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
-                    ToggleCircle:TweenPosition(UDim2.new(0, 2, 0, 2), "Out", "Quad", 0.2, true)
-                end
-                
-                if callback then
-                    callback(toggled)
-                end
+            CheckButton.MouseButton1Click:Connect(function()
+                checked = not checked
+                CheckMark.Text = checked and "✓" or ""
+                if callback then callback(checked) end
             end)
             
             return {
                 SetValue = function(value)
-                    toggled = value
-                    if toggled then
-                        ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
-                        ToggleCircle.Position = UDim2.new(1, -18, 0, 2)
-                    else
-                        ToggleButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
-                        ToggleCircle.Position = UDim2.new(0, 2, 0, 2)
-                    end
+                    checked = value
+                    CheckMark.Text = checked and "✓" or ""
                 end
             }
         end
         
+        -- Slider (Authentic gamesense style)
         function Tab:CreateSlider(name, min, max, default, callback)
-            local Slider = Instance.new("Frame")
-            Slider.Name = name
-            Slider.Parent = self.Content
-            Slider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            Slider.BorderSizePixel = 0
-            Slider.Size = UDim2.new(1, -10, 0, 50)
-            
-            local SliderCorner = Instance.new("UICorner")
-            SliderCorner.CornerRadius = UDim.new(0, 4)
-            SliderCorner.Parent = Slider
+            local SliderFrame = Instance.new("Frame")
+            SliderFrame.Name = name
+            SliderFrame.Parent = self.Content
+            SliderFrame.BackgroundTransparency = 1
+            SliderFrame.Size = UDim2.new(1, -20, 0, 35)
             
             local SliderLabel = Instance.new("TextLabel")
-            SliderLabel.Parent = Slider
+            SliderLabel.Parent = SliderFrame
             SliderLabel.BackgroundTransparency = 1
-            SliderLabel.Position = UDim2.new(0, 10, 0, 5)
-            SliderLabel.Size = UDim2.new(1, -20, 0, 15)
-            SliderLabel.Font = Enum.Font.Gotham
+            SliderLabel.Size = UDim2.new(0.7, 0, 0, 15)
+            SliderLabel.Font = Enum.Font.Code
             SliderLabel.Text = name
-            SliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            SliderLabel.TextSize = 12
+            SliderLabel.TextColor3 = Colors.Text
+            SliderLabel.TextSize = 11
             SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
             
-            local SliderValue = Instance.new("TextLabel")
-            SliderValue.Parent = Slider
-            SliderValue.BackgroundTransparency = 1
-            SliderValue.Position = UDim2.new(1, -50, 0, 5)
-            SliderValue.Size = UDim2.new(0, 40, 0, 15)
-            SliderValue.Font = Enum.Font.Gotham
+            local SliderValue = Instance.new("TextBox")
+            SliderValue.Parent = SliderFrame
+            SliderValue.BackgroundColor3 = Colors.Panel
+            SliderValue.BorderColor3 = Colors.Border
+            SliderValue.BorderSizePixel = 1
+            SliderValue.Position = UDim2.new(0.7, 0, 0, 0)
+            SliderValue.Size = UDim2.new(0.3, 0, 0, 15)
+            SliderValue.Font = Enum.Font.Code
             SliderValue.Text = tostring(default)
-            SliderValue.TextColor3 = Color3.fromRGB(70, 130, 180)
-            SliderValue.TextSize = 12
+            SliderValue.TextColor3 = Colors.Text
+            SliderValue.TextSize = 10
+            SliderValue.ClearTextOnFocus = false
             
-            local SliderTrack = Instance.new("Frame")
-            SliderTrack.Parent = Slider
-            SliderTrack.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-            SliderTrack.BorderSizePixel = 0
-            SliderTrack.Position = UDim2.new(0, 10, 0, 25)
-            SliderTrack.Size = UDim2.new(1, -20, 0, 4)
-            
-            local TrackCorner = Instance.new("UICorner")
-            TrackCorner.CornerRadius = UDim.new(0, 2)
-            TrackCorner.Parent = SliderTrack
+            local SliderBar = Instance.new("Frame")
+            SliderBar.Parent = SliderFrame
+            SliderBar.BackgroundColor3 = Colors.Panel
+            SliderBar.BorderColor3 = Colors.Border
+            SliderBar.BorderSizePixel = 1
+            SliderBar.Position = UDim2.new(0, 0, 0, 20)
+            SliderBar.Size = UDim2.new(1, 0, 0, 4)
             
             local SliderFill = Instance.new("Frame")
-            SliderFill.Parent = SliderTrack
-            SliderFill.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+            SliderFill.Parent = SliderBar
+            SliderFill.BackgroundColor3 = Colors.Accent
             SliderFill.BorderSizePixel = 0
             SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
             
-            local FillCorner = Instance.new("UICorner")
-            FillCorner.CornerRadius = UDim.new(0, 2)
-            FillCorner.Parent = SliderFill
-            
-            local SliderButton = Instance.new("TextButton")
-            SliderButton.Parent = SliderTrack
-            SliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            SliderButton.BorderSizePixel = 0
-            SliderButton.Position = UDim2.new((default - min) / (max - min), -6, 0, -6)
-            SliderButton.Size = UDim2.new(0, 12, 0, 16)
-            SliderButton.Text = ""
-            
-            local ButtonCorner = Instance.new("UICorner")
-            ButtonCorner.CornerRadius = UDim.new(0, 6)
-            ButtonCorner.Parent = SliderButton
+            local SliderHandle = Instance.new("Frame")
+            SliderHandle.Parent = SliderBar
+            SliderHandle.BackgroundColor3 = Colors.Text
+            SliderHandle.BorderSizePixel = 0
+            SliderHandle.Position = UDim2.new((default - min) / (max - min), -2, 0, -2)
+            SliderHandle.Size = UDim2.new(0, 4, 0, 8)
             
             local dragging = false
             local currentValue = default
             
-            SliderButton.MouseButton1Down:Connect(function()
-                dragging = true
+            local function updateSlider(value)
+                value = math.clamp(value, min, max)
+                currentValue = value
+                local percentage = (value - min) / (max - min)
+                SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+                SliderHandle.Position = UDim2.new(percentage, -2, 0, -2)
+                SliderValue.Text = tostring(value)
+                if callback then callback(value) end
+            end
+            
+            SliderBar.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    dragging = true
+                end
             end)
             
             UserInputService.InputEnded:Connect(function(input)
@@ -331,147 +372,104 @@ function Gamesense:CreateWindow(title)
             
             UserInputService.InputChanged:Connect(function(input)
                 if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                    local percentage = math.clamp((Mouse.X - SliderTrack.AbsolutePosition.X) / SliderTrack.AbsoluteSize.X, 0, 1)
-                    currentValue = math.floor(min + (max - min) * percentage)
-                    
-                    SliderButton:TweenPosition(UDim2.new(percentage, -6, 0, -6), "Out", "Quad", 0.1, true)
-                    SliderFill:TweenSize(UDim2.new(percentage, 0, 1, 0), "Out", "Quad", 0.1, true)
-                    SliderValue.Text = tostring(currentValue)
-                    
-                    if callback then
-                        callback(currentValue)
-                    end
+                    local percentage = math.clamp((Mouse.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+                    local value = math.floor(min + (max - min) * percentage)
+                    updateSlider(value)
                 end
+            end)
+            
+            SliderValue.FocusLost:Connect(function()
+                local value = tonumber(SliderValue.Text) or currentValue
+                updateSlider(value)
             end)
             
             return {
-                SetValue = function(value)
-                    currentValue = math.clamp(value, min, max)
-                    local percentage = (currentValue - min) / (max - min)
-                    SliderButton.Position = UDim2.new(percentage, -6, 0, -6)
-                    SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
-                    SliderValue.Text = tostring(currentValue)
-                end
+                SetValue = updateSlider
             }
         end
         
-        function Tab:CreateButton(name, callback)
-            local Button = Instance.new("TextButton")
-            Button.Name = name
-            Button.Parent = self.Content
-            Button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-            Button.BorderSizePixel = 0
-            Button.Size = UDim2.new(1, -10, 0, 30)
-            Button.Font = Enum.Font.GothamBold
-            Button.Text = name
-            Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-            Button.TextSize = 12
-            
-            local ButtonCorner = Instance.new("UICorner")
-            ButtonCorner.CornerRadius = UDim.new(0, 4)
-            ButtonCorner.Parent = Button
-            
-            Button.MouseButton1Click:Connect(function()
-                Button.BackgroundColor3 = Color3.fromRGB(50, 110, 160)
-                wait(0.1)
-                Button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-                
-                if callback then
-                    callback()
-                end
-            end)
-        end
-        
+        -- Dropdown (Authentic gamesense style)
         function Tab:CreateDropdown(name, options, callback)
-            local Dropdown = Instance.new("Frame")
-            Dropdown.Name = name
-            Dropdown.Parent = self.Content
-            Dropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            Dropdown.BorderSizePixel = 0
-            Dropdown.Size = UDim2.new(1, -10, 0, 30)
-            Dropdown.ClipsDescendants = true
-            
-            local DropdownCorner = Instance.new("UICorner")
-            DropdownCorner.CornerRadius = UDim.new(0, 4)
-            DropdownCorner.Parent = Dropdown
+            local DropdownFrame = Instance.new("Frame")
+            DropdownFrame.Name = name
+            DropdownFrame.Parent = self.Content
+            DropdownFrame.BackgroundTransparency = 1
+            DropdownFrame.Size = UDim2.new(1, -20, 0, 20)
+            DropdownFrame.ClipsDescendants = false
             
             local DropdownButton = Instance.new("TextButton")
-            DropdownButton.Parent = Dropdown
-            DropdownButton.BackgroundTransparency = 1
-            DropdownButton.Size = UDim2.new(1, 0, 0, 30)
-            DropdownButton.Font = Enum.Font.Gotham
-            DropdownButton.Text = name .. ": " .. (options[1] or "None")
-            DropdownButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-            DropdownButton.TextSize = 12
+            DropdownButton.Parent = DropdownFrame
+            DropdownButton.BackgroundColor3 = Colors.Panel
+            DropdownButton.BorderColor3 = Colors.Border
+            DropdownButton.BorderSizePixel = 1
+            DropdownButton.Size = UDim2.new(1, 0, 0, 20)
+            DropdownButton.Font = Enum.Font.Code
+            DropdownButton.Text = name .. ": " .. (options[1] or "")
+            DropdownButton.TextColor3 = Colors.Text
+            DropdownButton.TextSize = 11
+            DropdownButton.TextXAlignment = Enum.TextXAlignment.Left
             
-            local DropdownIcon = Instance.new("TextLabel")
-            DropdownIcon.Parent = Dropdown
-            DropdownIcon.BackgroundTransparency = 1
-            DropdownIcon.Position = UDim2.new(1, -20, 0, 0)
-            DropdownIcon.Size = UDim2.new(0, 20, 0, 30)
-            DropdownIcon.Font = Enum.Font.Gotham
-            DropdownIcon.Text = "▼"
-            DropdownIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
-            DropdownIcon.TextSize = 10
+            local DropdownArrow = Instance.new("TextLabel")
+            DropdownArrow.Parent = DropdownButton
+            DropdownArrow.BackgroundTransparency = 1
+            DropdownArrow.Position = UDim2.new(1, -15, 0, 0)
+            DropdownArrow.Size = UDim2.new(0, 15, 1, 0)
+            DropdownArrow.Font = Enum.Font.Code
+            DropdownArrow.Text = "▼"
+            DropdownArrow.TextColor3 = Colors.TextDark
+            DropdownArrow.TextSize = 8
             
             local DropdownList = Instance.new("Frame")
-            DropdownList.Parent = Dropdown
-            DropdownList.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-            DropdownList.BorderSizePixel = 0
-            DropdownList.Position = UDim2.new(0, 0, 0, 30)
-            DropdownList.Size = UDim2.new(1, 0, 0, #options * 25)
+            DropdownList.Parent = DropdownFrame
+            DropdownList.BackgroundColor3 = Colors.Panel
+            DropdownList.BorderColor3 = Colors.Border
+            DropdownList.BorderSizePixel = 1
+            DropdownList.Position = UDim2.new(0, 0, 1, 0)
+            DropdownList.Size = UDim2.new(1, 0, 0, #options * 18)
+            DropdownList.Visible = false
+            DropdownList.ZIndex = 10
             
-            local ListLayout = Instance.new("UIListLayout")
-            ListLayout.Parent = DropdownList
-            ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-            
-            local expanded = false
             local selectedOption = options[1]
+            local expanded = false
             
             for i, option in ipairs(options) do
                 local OptionButton = Instance.new("TextButton")
                 OptionButton.Parent = DropdownList
-                OptionButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+                OptionButton.BackgroundColor3 = Colors.Panel
                 OptionButton.BorderSizePixel = 0
-                OptionButton.Size = UDim2.new(1, 0, 0, 25)
-                OptionButton.Font = Enum.Font.Gotham
+                OptionButton.Position = UDim2.new(0, 0, 0, (i-1) * 18)
+                OptionButton.Size = UDim2.new(1, 0, 0, 18)
+                OptionButton.Font = Enum.Font.Code
                 OptionButton.Text = option
-                OptionButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-                OptionButton.TextSize = 11
+                OptionButton.TextColor3 = Colors.TextDark
+                OptionButton.TextSize = 10
+                OptionButton.TextXAlignment = Enum.TextXAlignment.Left
+                OptionButton.ZIndex = 11
+                
+                OptionButton.MouseEnter:Connect(function()
+                    OptionButton.BackgroundColor3 = Colors.Background
+                    OptionButton.TextColor3 = Colors.Text
+                end)
+                
+                OptionButton.MouseLeave:Connect(function()
+                    OptionButton.BackgroundColor3 = Colors.Panel
+                    OptionButton.TextColor3 = Colors.TextDark
+                end)
                 
                 OptionButton.MouseButton1Click:Connect(function()
                     selectedOption = option
                     DropdownButton.Text = name .. ": " .. option
-                    
-                    -- Close dropdown
+                    DropdownList.Visible = false
                     expanded = false
-                    Dropdown:TweenSize(UDim2.new(1, -10, 0, 30), "Out", "Quad", 0.2, true)
-                    DropdownIcon.Text = "▼"
-                    
-                    if callback then
-                        callback(option)
-                    end
-                end)
-                
-                OptionButton.MouseEnter:Connect(function()
-                    OptionButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-                end)
-                
-                OptionButton.MouseLeave:Connect(function()
-                    OptionButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+                    DropdownArrow.Text = "▼"
+                    if callback then callback(option) end
                 end)
             end
             
             DropdownButton.MouseButton1Click:Connect(function()
                 expanded = not expanded
-                
-                if expanded then
-                    Dropdown:TweenSize(UDim2.new(1, -10, 0, 30 + #options * 25), "Out", "Quad", 0.2, true)
-                    DropdownIcon.Text = "▲"
-                else
-                    Dropdown:TweenSize(UDim2.new(1, -10, 0, 30), "Out", "Quad", 0.2, true)
-                    DropdownIcon.Text = "▼"
-                end
+                DropdownList.Visible = expanded
+                DropdownArrow.Text = expanded and "▲" or "▼"
             end)
             
             return {
@@ -480,6 +478,97 @@ function Gamesense:CreateWindow(title)
                         selectedOption = value
                         DropdownButton.Text = name .. ": " .. value
                     end
+                end
+            }
+        end
+        
+        -- Button (Authentic gamesense style)
+        function Tab:CreateButton(name, callback)
+            local Button = Instance.new("TextButton")
+            Button.Name = name
+            Button.Parent = self.Content
+            Button.BackgroundColor3 = Colors.Panel
+            Button.BorderColor3 = Colors.Border
+            Button.BorderSizePixel = 1
+            Button.Size = UDim2.new(1, -20, 0, 25)
+            Button.Font = Enum.Font.Code
+            Button.Text = name
+            Button.TextColor3 = Colors.Text
+            Button.TextSize = 11
+            
+            Button.MouseEnter:Connect(function()
+                Button.BackgroundColor3 = Colors.Background
+                Button.BorderColor3 = Colors.Accent
+            end)
+            
+            Button.MouseLeave:Connect(function()
+                Button.BackgroundColor3 = Colors.Panel
+                Button.BorderColor3 = Colors.Border
+            end)
+            
+            Button.MouseButton1Click:Connect(function()
+                if callback then callback() end
+            end)
+        end
+        
+        -- Color Picker (Authentic gamesense feature)
+        function Tab:CreateColorPicker(name, default, callback)
+            local ColorFrame = Instance.new("Frame")
+            ColorFrame.Name = name
+            ColorFrame.Parent = self.Content
+            ColorFrame.BackgroundTransparency = 1
+            ColorFrame.Size = UDim2.new(1, -20, 0, 20)
+            
+            local ColorLabel = Instance.new("TextLabel")
+            ColorLabel.Parent = ColorFrame
+            ColorLabel.BackgroundTransparency = 1
+            ColorLabel.Size = UDim2.new(0.8, 0, 1, 0)
+            ColorLabel.Font = Enum.Font.Code
+            ColorLabel.Text = name
+            ColorLabel.TextColor3 = Colors.Text
+            ColorLabel.TextSize = 11
+            ColorLabel.TextXAlignment = Enum.TextXAlignment.Left
+            
+            local ColorDisplay = Instance.new("Frame")
+            ColorDisplay.Parent = ColorFrame
+            ColorDisplay.BackgroundColor3 = default or Color3.fromRGB(255, 255, 255)
+            ColorDisplay.BorderColor3 = Colors.Border
+            ColorDisplay.BorderSizePixel = 1
+            ColorDisplay.Position = UDim2.new(0.8, 0, 0, 2)
+            ColorDisplay.Size = UDim2.new(0.2, -5, 0, 16)
+            
+            local rainbowEnabled = false
+            local rainbowConnection
+            
+            local ColorButton = Instance.new("TextButton")
+            ColorButton.Parent = ColorDisplay
+            ColorButton.BackgroundTransparency = 1
+            ColorButton.Size = UDim2.new(1, 0, 1, 0)
+            ColorButton.Text = ""
+            
+            ColorButton.MouseButton1Click:Connect(function()
+                rainbowEnabled = not rainbowEnabled
+                
+                if rainbowEnabled then
+                    rainbowConnection = RunService.Heartbeat:Connect(function()
+                        local rainbowColor = GetRainbowColor(2)
+                        ColorDisplay.BackgroundColor3 = rainbowColor
+                        if callback then callback(rainbowColor) end
+                    end)
+                else
+                    if rainbowConnection then
+                        rainbowConnection:Disconnect()
+                    end
+                end
+            end)
+            
+            return {
+                SetValue = function(color)
+                    if rainbowConnection then
+                        rainbowConnection:Disconnect()
+                        rainbowEnabled = false
+                    end
+                    ColorDisplay.BackgroundColor3 = color
                 end
             }
         end
