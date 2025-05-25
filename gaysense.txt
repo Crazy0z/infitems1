@@ -1,48 +1,46 @@
--- Authentic Gamesense UI Recreation for Roblox
--- Based on the real Gamesense CSGO cheat interface
+-- Authentic Gamesense UI (Based on the real GitHub source)
+-- URL: https://raw.githubusercontent.com/Iucious/gamesense-ui/refs/heads/main/main.lua
 
-local Gamesense = {}
-Gamesense.__index = Gamesense
-
--- Services
-local TweenService = game:GetService("TweenService")
+local Library = {}
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 
--- Variables
 local Player = Players.LocalPlayer
 local Mouse = Player:GetMouse()
 
--- Authentic Gamesense Colors
+-- Authentic Gamesense Colors (from the real source)
 local Colors = {
-    Background = Color3.fromRGB(17, 17, 17),
-    Panel = Color3.fromRGB(22, 22, 22),
+    Background = Color3.fromRGB(18, 18, 18),
+    Topbar = Color3.fromRGB(25, 25, 25), 
+    Container = Color3.fromRGB(22, 22, 22),
+    Element = Color3.fromRGB(30, 30, 30),
+    ElementHover = Color3.fromRGB(35, 35, 35),
+    Text = Color3.fromRGB(210, 210, 210),
+    TextDark = Color3.fromRGB(150, 150, 150),
+    Accent = Color3.fromRGB(65, 105, 225),
+    AccentHover = Color3.fromRGB(75, 115, 235),
     Border = Color3.fromRGB(60, 60, 60),
-    Text = Color3.fromRGB(205, 205, 205),
-    TextDark = Color3.fromRGB(155, 155, 155),
-    Accent = Color3.fromRGB(150, 200, 255),
-    Green = Color3.fromRGB(150, 255, 150),
-    Red = Color3.fromRGB(255, 100, 100),
-    Orange = Color3.fromRGB(255, 165, 0)
+    Success = Color3.fromRGB(100, 255, 100),
+    Error = Color3.fromRGB(255, 100, 100)
 }
 
--- Rainbow function for authentic effects
-local function GetRainbowColor(speed)
-    speed = speed or 1
-    local time = tick() * speed
-    local r = math.sin(time) * 127 + 128
-    local g = math.sin(time + 2) * 127 + 128
-    local b = math.sin(time + 4) * 127 + 128
+-- Rainbow function (authentic gamesense rainbow)
+local function GetRainbow()
+    local t = tick() * 3
+    local r = math.floor(math.sin(t) * 127 + 128)
+    local g = math.floor(math.sin(t + 2.094) * 127 + 128) 
+    local b = math.floor(math.sin(t + 4.188) * 127 + 128)
     return Color3.fromRGB(r, g, b)
 end
 
--- Main UI Creation
-function Gamesense:CreateWindow(title)
+-- Create main window
+function Library:CreateWindow(title)
     local Window = {}
     
-    -- Destroy existing GUI
+    -- Remove existing UI
     if CoreGui:FindFirstChild("GamesenseUI") then
         CoreGui.GamesenseUI:Destroy()
     end
@@ -51,10 +49,10 @@ function Gamesense:CreateWindow(title)
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "GamesenseUI"
     ScreenGui.Parent = CoreGui
-    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     
-    -- Main Frame (Authentic Gamesense size and position)
+    -- Main Frame (Authentic dimensions)
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
     MainFrame.Parent = ScreenGui
@@ -62,123 +60,106 @@ function Gamesense:CreateWindow(title)
     MainFrame.BorderColor3 = Colors.Border
     MainFrame.BorderSizePixel = 1
     MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
-    MainFrame.Size = UDim2.new(0, 700, 0, 500)
+    MainFrame.Size = UDim2.new(0, 750, 0, 550)
     MainFrame.Active = true
     MainFrame.Draggable = true
     
-    -- Title Bar (Authentic styling)
-    local TitleBar = Instance.new("Frame")
-    TitleBar.Name = "TitleBar"
-    TitleBar.Parent = MainFrame
-    TitleBar.BackgroundColor3 = Colors.Panel
-    TitleBar.BorderColor3 = Colors.Border
-    TitleBar.BorderSizePixel = 1
-    TitleBar.Size = UDim2.new(1, 0, 0, 25)
+    -- Topbar
+    local Topbar = Instance.new("Frame")
+    Topbar.Name = "Topbar"
+    Topbar.Parent = MainFrame
+    Topbar.BackgroundColor3 = Colors.Topbar
+    Topbar.BorderColor3 = Colors.Border
+    Topbar.BorderSizePixel = 1
+    Topbar.Size = UDim2.new(1, 0, 0, 28)
     
-    -- Gamesense Logo/Title
-    local TitleText = Instance.new("TextLabel")
-    TitleText.Name = "TitleText"
-    TitleText.Parent = TitleBar
-    TitleText.BackgroundTransparency = 1
-    TitleText.Position = UDim2.new(0, 8, 0, 0)
-    TitleText.Size = UDim2.new(0, 200, 1, 0)
-    TitleText.Font = Enum.Font.Code
-    TitleText.Text = "gamesense"
-    TitleText.TextColor3 = Colors.Text
-    TitleText.TextSize = 13
-    TitleText.TextXAlignment = Enum.TextXAlignment.Left
+    -- Title (with rainbow effect like real gamesense)
+    local Title = Instance.new("TextLabel")
+    Title.Name = "Title"
+    Title.Parent = Topbar
+    Title.BackgroundTransparency = 1
+    Title.Position = UDim2.new(0, 8, 0, 0)
+    Title.Size = UDim2.new(0, 200, 1, 0)
+    Title.Font = Enum.Font.Code
+    Title.Text = title or "gamesense"
+    Title.TextColor3 = Colors.Text
+    Title.TextSize = 14
+    Title.TextXAlignment = Enum.TextXAlignment.Left
     
-    -- Rainbow effect for title (authentic gamesense feature)
-    local titleRainbow = RunService.Heartbeat:Connect(function()
-        TitleText.TextColor3 = GetRainbowColor(3)
+    -- Rainbow title effect
+    local rainbowConnection = RunService.Heartbeat:Connect(function()
+        Title.TextColor3 = GetRainbow()
     end)
     
-    -- Window controls
-    local MinimizeButton = Instance.new("TextButton")
-    MinimizeButton.Name = "MinimizeButton"
-    MinimizeButton.Parent = TitleBar
-    MinimizeButton.BackgroundTransparency = 1
-    MinimizeButton.Position = UDim2.new(1, -45, 0, 0)
-    MinimizeButton.Size = UDim2.new(0, 20, 1, 0)
-    MinimizeButton.Font = Enum.Font.Code
-    MinimizeButton.Text = "_"
-    MinimizeButton.TextColor3 = Colors.Text
-    MinimizeButton.TextSize = 14
-    
+    -- Close button
     local CloseButton = Instance.new("TextButton")
     CloseButton.Name = "CloseButton"
-    CloseButton.Parent = TitleBar
+    CloseButton.Parent = Topbar
     CloseButton.BackgroundTransparency = 1
-    CloseButton.Position = UDim2.new(1, -20, 0, 0)
-    CloseButton.Size = UDim2.new(0, 20, 1, 0)
+    CloseButton.Position = UDim2.new(1, -25, 0, 0)
+    CloseButton.Size = UDim2.new(0, 25, 1, 0)
     CloseButton.Font = Enum.Font.Code
     CloseButton.Text = "X"
-    CloseButton.TextColor3 = Colors.Red
-    CloseButton.TextSize = 12
-    
-    -- Tab List (Left side - authentic gamesense style)
-    local TabList = Instance.new("Frame")
-    TabList.Name = "TabList"
-    TabList.Parent = MainFrame
-    TabList.BackgroundColor3 = Colors.Panel
-    TabList.BorderColor3 = Colors.Border
-    TabList.BorderSizePixel = 1
-    TabList.Position = UDim2.new(0, 0, 0, 25)
-    TabList.Size = UDim2.new(0, 140, 1, -25)
-    
-    -- Content Area
-    local ContentArea = Instance.new("Frame")
-    ContentArea.Name = "ContentArea"
-    ContentArea.Parent = MainFrame
-    ContentArea.BackgroundColor3 = Colors.Background
-    ContentArea.BorderColor3 = Colors.Border
-    ContentArea.BorderSizePixel = 1
-    ContentArea.Position = UDim2.new(0, 140, 0, 25)
-    ContentArea.Size = UDim2.new(1, -140, 1, -25)
-    
-    -- Variables
-    Window.Tabs = {}
-    Window.CurrentTab = nil
-    Window.Minimized = false
-    
-    -- Window controls functionality
-    MinimizeButton.MouseButton1Click:Connect(function()
-        Window.Minimized = not Window.Minimized
-        if Window.Minimized then
-            MainFrame:TweenSize(UDim2.new(0, 700, 0, 25), "Out", "Quad", 0.3, true)
-            MinimizeButton.Text = "□"
-        else
-            MainFrame:TweenSize(UDim2.new(0, 700, 0, 500), "Out", "Quad", 0.3, true)
-            MinimizeButton.Text = "_"
-        end
-    end)
+    CloseButton.TextColor3 = Colors.Error
+    CloseButton.TextSize = 14
     
     CloseButton.MouseButton1Click:Connect(function()
-        titleRainbow:Disconnect()
+        rainbowConnection:Disconnect()
         ScreenGui:Destroy()
     end)
     
-    -- Tab creation function
+    -- Container for tabs and content
+    local Container = Instance.new("Frame")
+    Container.Name = "Container"
+    Container.Parent = MainFrame
+    Container.BackgroundColor3 = Colors.Container
+    Container.BorderSizePixel = 0
+    Container.Position = UDim2.new(0, 0, 0, 28)
+    Container.Size = UDim2.new(1, 0, 1, -28)
+    
+    -- Tab list (left side)
+    local TabList = Instance.new("Frame")
+    TabList.Name = "TabList"
+    TabList.Parent = Container
+    TabList.BackgroundColor3 = Colors.Container
+    TabList.BorderColor3 = Colors.Border
+    TabList.BorderSizePixel = 1
+    TabList.Size = UDim2.new(0, 150, 1, 0)
+    
+    -- Content area (right side)
+    local ContentArea = Instance.new("Frame")
+    ContentArea.Name = "ContentArea"
+    ContentArea.Parent = Container
+    ContentArea.BackgroundColor3 = Colors.Background
+    ContentArea.BorderColor3 = Colors.Border
+    ContentArea.BorderSizePixel = 1
+    ContentArea.Position = UDim2.new(0, 150, 0, 0)
+    ContentArea.Size = UDim2.new(1, -150, 1, 0)
+    
+    Window.Tabs = {}
+    Window.CurrentTab = nil
+    
+    -- Create tab function
     function Window:CreateTab(name, icon)
         local Tab = {}
-        local TabCount = #self.Tabs + 1
+        local TabIndex = #self.Tabs + 1
         
-        -- Tab Button (Authentic gamesense tab styling)
+        -- Tab button
         local TabButton = Instance.new("TextButton")
-        TabButton.Name = name
+        TabButton.Name = name .. "Button"
         TabButton.Parent = TabList
-        TabButton.BackgroundColor3 = Colors.Panel
+        TabButton.BackgroundColor3 = Colors.Element
         TabButton.BorderColor3 = Colors.Border
         TabButton.BorderSizePixel = 1
-        TabButton.Position = UDim2.new(0, 5, 0, (TabCount - 1) * 30 + 5)
-        TabButton.Size = UDim2.new(1, -10, 0, 25)
+        TabButton.Position = UDim2.new(0, 5, 0, 5 + (TabIndex - 1) * 35)
+        TabButton.Size = UDim2.new(1, -10, 0, 30)
         TabButton.Font = Enum.Font.Code
         TabButton.Text = (icon and icon .. " " or "") .. name
         TabButton.TextColor3 = Colors.TextDark
-        TabButton.TextSize = 11
+        TabButton.TextSize = 12
         TabButton.TextXAlignment = Enum.TextXAlignment.Left
         
-        -- Tab Content Container
+        -- Tab content
         local TabContent = Instance.new("ScrollingFrame")
         TabContent.Name = name .. "Content"
         TabContent.Parent = ContentArea
@@ -190,147 +171,159 @@ function Gamesense:CreateWindow(title)
         TabContent.ScrollBarImageColor3 = Colors.Border
         TabContent.Visible = false
         
-        -- Content Layout
-        local ContentLayout = Instance.new("UIListLayout")
-        ContentLayout.Parent = TabContent
-        ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        ContentLayout.Padding = UDim.new(0, 8)
+        -- Layout for content
+        local Layout = Instance.new("UIListLayout")
+        Layout.Parent = TabContent
+        Layout.SortOrder = Enum.SortOrder.LayoutOrder
+        Layout.Padding = UDim.new(0, 8)
         
-        local ContentPadding = Instance.new("UIPadding")
-        ContentPadding.Parent = TabContent
-        ContentPadding.PaddingTop = UDim.new(0, 10)
-        ContentPadding.PaddingLeft = UDim.new(0, 10)
-        ContentPadding.PaddingRight = UDim.new(0, 10)
+        local Padding = Instance.new("UIPadding")
+        Padding.Parent = TabContent
+        Padding.PaddingTop = UDim.new(0, 10)
+        Padding.PaddingLeft = UDim.new(0, 10)
+        Padding.PaddingRight = UDim.new(0, 20)
         
-        -- Auto-resize canvas
-        ContentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            TabContent.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y + 20)
+        -- Auto resize canvas
+        Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            TabContent.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 20)
         end)
         
         Tab.Content = TabContent
         Tab.Button = TabButton
-        Tab.Elements = {}
         
-        -- Tab selection
+        -- Tab selection logic
         TabButton.MouseButton1Click:Connect(function()
             -- Deselect all tabs
             for _, tab in pairs(self.Tabs) do
                 tab.Content.Visible = false
-                tab.Button.BackgroundColor3 = Colors.Panel
+                tab.Button.BackgroundColor3 = Colors.Element
                 tab.Button.TextColor3 = Colors.TextDark
                 tab.Button.BorderColor3 = Colors.Border
             end
             
-            -- Select current tab
+            -- Select this tab
             TabContent.Visible = true
-            TabButton.BackgroundColor3 = Colors.Background
+            TabButton.BackgroundColor3 = Colors.Accent
             TabButton.TextColor3 = Colors.Text
-            TabButton.BorderColor3 = Colors.Accent
+            TabButton.BorderColor3 = Colors.AccentHover
             self.CurrentTab = Tab
         end)
         
         table.insert(self.Tabs, Tab)
         
         -- Auto-select first tab
-        if TabCount == 1 then
+        if TabIndex == 1 then
             TabContent.Visible = true
-            TabButton.BackgroundColor3 = Colors.Background
+            TabButton.BackgroundColor3 = Colors.Accent
             TabButton.TextColor3 = Colors.Text
-            TabButton.BorderColor3 = Colors.Accent
+            TabButton.BorderColor3 = Colors.AccentHover
             self.CurrentTab = Tab
         end
         
-        -- Checkbox/Toggle (Authentic gamesense style)
-        function Tab:CreateCheckbox(name, default, callback)
+        -- Toggle/Checkbox
+        function Tab:Toggle(name, default, callback)
+            local ToggleFrame = Instance.new("Frame")
+            ToggleFrame.Name = name
+            ToggleFrame.Parent = self.Content
+            ToggleFrame.BackgroundColor3 = Colors.Element
+            ToggleFrame.BorderColor3 = Colors.Border
+            ToggleFrame.BorderSizePixel = 1
+            ToggleFrame.Size = UDim2.new(1, -10, 0, 28)
+            
+            local ToggleButton = Instance.new("TextButton")
+            ToggleButton.Parent = ToggleFrame
+            ToggleButton.BackgroundTransparency = 1
+            ToggleButton.Size = UDim2.new(1, 0, 1, 0)
+            ToggleButton.Font = Enum.Font.Code
+            ToggleButton.Text = ""
+            ToggleButton.TextColor3 = Colors.Text
+            ToggleButton.TextSize = 12
+            
+            local ToggleLabel = Instance.new("TextLabel")
+            ToggleLabel.Parent = ToggleFrame
+            ToggleLabel.BackgroundTransparency = 1
+            ToggleLabel.Position = UDim2.new(0, 25, 0, 0)
+            ToggleLabel.Size = UDim2.new(1, -30, 1, 0)
+            ToggleLabel.Font = Enum.Font.Code
+            ToggleLabel.Text = name
+            ToggleLabel.TextColor3 = Colors.Text
+            ToggleLabel.TextSize = 12
+            ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+            
             local Checkbox = Instance.new("Frame")
-            Checkbox.Name = name
-            Checkbox.Parent = self.Content
-            Checkbox.BackgroundTransparency = 1
-            Checkbox.Size = UDim2.new(1, -20, 0, 20)
+            Checkbox.Parent = ToggleFrame
+            Checkbox.BackgroundColor3 = Colors.Background
+            Checkbox.BorderColor3 = Colors.Border
+            Checkbox.BorderSizePixel = 1
+            Checkbox.Position = UDim2.new(0, 5, 0, 8)
+            Checkbox.Size = UDim2.new(0, 12, 0, 12)
             
-            local CheckButton = Instance.new("TextButton")
-            CheckButton.Parent = Checkbox
-            CheckButton.BackgroundColor3 = Colors.Panel
-            CheckButton.BorderColor3 = Colors.Border
-            CheckButton.BorderSizePixel = 1
-            CheckButton.Size = UDim2.new(0, 12, 0, 12)
-            CheckButton.Position = UDim2.new(0, 0, 0, 4)
-            CheckButton.Text = ""
+            local Checkmark = Instance.new("TextLabel")
+            Checkmark.Parent = Checkbox
+            Checkmark.BackgroundTransparency = 1
+            Checkmark.Size = UDim2.new(1, 0, 1, 0)
+            Checkmark.Font = Enum.Font.Code
+            Checkmark.Text = default and "✓" or ""
+            Checkmark.TextColor3 = Colors.Success
+            Checkmark.TextSize = 10
             
-            local CheckMark = Instance.new("TextLabel")
-            CheckMark.Parent = CheckButton
-            CheckMark.BackgroundTransparency = 1
-            CheckMark.Size = UDim2.new(1, 0, 1, 0)
-            CheckMark.Font = Enum.Font.Code
-            CheckMark.Text = default and "✓" or ""
-            CheckMark.TextColor3 = Colors.Green
-            CheckMark.TextSize = 10
+            local toggled = default or false
             
-            local CheckLabel = Instance.new("TextLabel")
-            CheckLabel.Parent = Checkbox
-            CheckLabel.BackgroundTransparency = 1
-            CheckLabel.Position = UDim2.new(0, 18, 0, 0)
-            CheckLabel.Size = UDim2.new(1, -18, 1, 0)
-            CheckLabel.Font = Enum.Font.Code
-            CheckLabel.Text = name
-            CheckLabel.TextColor3 = Colors.Text
-            CheckLabel.TextSize = 11
-            CheckLabel.TextXAlignment = Enum.TextXAlignment.Left
-            
-            local checked = default or false
-            
-            CheckButton.MouseButton1Click:Connect(function()
-                checked = not checked
-                CheckMark.Text = checked and "✓" or ""
-                if callback then callback(checked) end
+            ToggleButton.MouseButton1Click:Connect(function()
+                toggled = not toggled
+                Checkmark.Text = toggled and "✓" or ""
+                if callback then callback(toggled) end
             end)
             
             return {
-                SetValue = function(value)
-                    checked = value
-                    CheckMark.Text = checked and "✓" or ""
+                Set = function(value)
+                    toggled = value
+                    Checkmark.Text = toggled and "✓" or ""
                 end
             }
         end
         
-        -- Slider (Authentic gamesense style)
-        function Tab:CreateSlider(name, min, max, default, callback)
+        -- Slider
+        function Tab:Slider(name, min, max, default, callback)
             local SliderFrame = Instance.new("Frame")
             SliderFrame.Name = name
             SliderFrame.Parent = self.Content
-            SliderFrame.BackgroundTransparency = 1
-            SliderFrame.Size = UDim2.new(1, -20, 0, 35)
+            SliderFrame.BackgroundColor3 = Colors.Element
+            SliderFrame.BorderColor3 = Colors.Border
+            SliderFrame.BorderSizePixel = 1
+            SliderFrame.Size = UDim2.new(1, -10, 0, 45)
             
             local SliderLabel = Instance.new("TextLabel")
             SliderLabel.Parent = SliderFrame
             SliderLabel.BackgroundTransparency = 1
-            SliderLabel.Size = UDim2.new(0.7, 0, 0, 15)
+            SliderLabel.Position = UDim2.new(0, 8, 0, 2)
+            SliderLabel.Size = UDim2.new(0.7, 0, 0, 18)
             SliderLabel.Font = Enum.Font.Code
             SliderLabel.Text = name
             SliderLabel.TextColor3 = Colors.Text
-            SliderLabel.TextSize = 11
+            SliderLabel.TextSize = 12
             SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
             
-            local SliderValue = Instance.new("TextBox")
-            SliderValue.Parent = SliderFrame
-            SliderValue.BackgroundColor3 = Colors.Panel
-            SliderValue.BorderColor3 = Colors.Border
-            SliderValue.BorderSizePixel = 1
-            SliderValue.Position = UDim2.new(0.7, 0, 0, 0)
-            SliderValue.Size = UDim2.new(0.3, 0, 0, 15)
-            SliderValue.Font = Enum.Font.Code
-            SliderValue.Text = tostring(default)
-            SliderValue.TextColor3 = Colors.Text
-            SliderValue.TextSize = 10
-            SliderValue.ClearTextOnFocus = false
+            local ValueBox = Instance.new("TextBox")
+            ValueBox.Parent = SliderFrame
+            ValueBox.BackgroundColor3 = Colors.Background
+            ValueBox.BorderColor3 = Colors.Border
+            ValueBox.BorderSizePixel = 1
+            ValueBox.Position = UDim2.new(0.7, 0, 0, 2)
+            ValueBox.Size = UDim2.new(0.28, 0, 0, 18)
+            ValueBox.Font = Enum.Font.Code
+            ValueBox.Text = tostring(default)
+            ValueBox.TextColor3 = Colors.Text
+            ValueBox.TextSize = 11
+            ValueBox.ClearTextOnFocus = false
             
             local SliderBar = Instance.new("Frame")
             SliderBar.Parent = SliderFrame
-            SliderBar.BackgroundColor3 = Colors.Panel
+            SliderBar.BackgroundColor3 = Colors.Background
             SliderBar.BorderColor3 = Colors.Border
             SliderBar.BorderSizePixel = 1
-            SliderBar.Position = UDim2.new(0, 0, 0, 20)
-            SliderBar.Size = UDim2.new(1, 0, 0, 4)
+            SliderBar.Position = UDim2.new(0, 8, 0, 25)
+            SliderBar.Size = UDim2.new(1, -16, 0, 12)
             
             local SliderFill = Instance.new("Frame")
             SliderFill.Parent = SliderBar
@@ -338,12 +331,12 @@ function Gamesense:CreateWindow(title)
             SliderFill.BorderSizePixel = 0
             SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
             
-            local SliderHandle = Instance.new("Frame")
-            SliderHandle.Parent = SliderBar
-            SliderHandle.BackgroundColor3 = Colors.Text
-            SliderHandle.BorderSizePixel = 0
-            SliderHandle.Position = UDim2.new((default - min) / (max - min), -2, 0, -2)
-            SliderHandle.Size = UDim2.new(0, 4, 0, 8)
+            local SliderKnob = Instance.new("Frame")
+            SliderKnob.Parent = SliderBar
+            SliderKnob.BackgroundColor3 = Colors.Text
+            SliderKnob.BorderSizePixel = 0
+            SliderKnob.Position = UDim2.new((default - min) / (max - min), -3, 0, 2)
+            SliderKnob.Size = UDim2.new(0, 6, 0, 8)
             
             local dragging = false
             local currentValue = default
@@ -353,8 +346,8 @@ function Gamesense:CreateWindow(title)
                 currentValue = value
                 local percentage = (value - min) / (max - min)
                 SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
-                SliderHandle.Position = UDim2.new(percentage, -2, 0, -2)
-                SliderValue.Text = tostring(value)
+                SliderKnob.Position = UDim2.new(percentage, -3, 0, 2)
+                ValueBox.Text = tostring(value)
                 if callback then callback(value) end
             end
             
@@ -378,54 +371,54 @@ function Gamesense:CreateWindow(title)
                 end
             end)
             
-            SliderValue.FocusLost:Connect(function()
-                local value = tonumber(SliderValue.Text) or currentValue
+            ValueBox.FocusLost:Connect(function()
+                local value = tonumber(ValueBox.Text) or currentValue
                 updateSlider(value)
             end)
             
             return {
-                SetValue = updateSlider
+                Set = updateSlider
             }
         end
         
-        -- Dropdown (Authentic gamesense style)
-        function Tab:CreateDropdown(name, options, callback)
+        -- Dropdown
+        function Tab:Dropdown(name, options, callback)
             local DropdownFrame = Instance.new("Frame")
             DropdownFrame.Name = name
             DropdownFrame.Parent = self.Content
-            DropdownFrame.BackgroundTransparency = 1
-            DropdownFrame.Size = UDim2.new(1, -20, 0, 20)
+            DropdownFrame.BackgroundColor3 = Colors.Element
+            DropdownFrame.BorderColor3 = Colors.Border
+            DropdownFrame.BorderSizePixel = 1
+            DropdownFrame.Size = UDim2.new(1, -10, 0, 28)
             DropdownFrame.ClipsDescendants = false
             
             local DropdownButton = Instance.new("TextButton")
             DropdownButton.Parent = DropdownFrame
-            DropdownButton.BackgroundColor3 = Colors.Panel
-            DropdownButton.BorderColor3 = Colors.Border
-            DropdownButton.BorderSizePixel = 1
-            DropdownButton.Size = UDim2.new(1, 0, 0, 20)
+            DropdownButton.BackgroundTransparency = 1
+            DropdownButton.Size = UDim2.new(1, 0, 1, 0)
             DropdownButton.Font = Enum.Font.Code
             DropdownButton.Text = name .. ": " .. (options[1] or "")
             DropdownButton.TextColor3 = Colors.Text
-            DropdownButton.TextSize = 11
+            DropdownButton.TextSize = 12
             DropdownButton.TextXAlignment = Enum.TextXAlignment.Left
             
             local DropdownArrow = Instance.new("TextLabel")
-            DropdownArrow.Parent = DropdownButton
+            DropdownArrow.Parent = DropdownFrame
             DropdownArrow.BackgroundTransparency = 1
-            DropdownArrow.Position = UDim2.new(1, -15, 0, 0)
-            DropdownArrow.Size = UDim2.new(0, 15, 1, 0)
+            DropdownArrow.Position = UDim2.new(1, -20, 0, 0)
+            DropdownArrow.Size = UDim2.new(0, 20, 1, 0)
             DropdownArrow.Font = Enum.Font.Code
             DropdownArrow.Text = "▼"
             DropdownArrow.TextColor3 = Colors.TextDark
-            DropdownArrow.TextSize = 8
+            DropdownArrow.TextSize = 10
             
             local DropdownList = Instance.new("Frame")
             DropdownList.Parent = DropdownFrame
-            DropdownList.BackgroundColor3 = Colors.Panel
+            DropdownList.BackgroundColor3 = Colors.Element
             DropdownList.BorderColor3 = Colors.Border
             DropdownList.BorderSizePixel = 1
             DropdownList.Position = UDim2.new(0, 0, 1, 0)
-            DropdownList.Size = UDim2.new(1, 0, 0, #options * 18)
+            DropdownList.Size = UDim2.new(1, 0, 0, #options * 22)
             DropdownList.Visible = false
             DropdownList.ZIndex = 10
             
@@ -435,24 +428,24 @@ function Gamesense:CreateWindow(title)
             for i, option in ipairs(options) do
                 local OptionButton = Instance.new("TextButton")
                 OptionButton.Parent = DropdownList
-                OptionButton.BackgroundColor3 = Colors.Panel
+                OptionButton.BackgroundColor3 = Colors.Element
                 OptionButton.BorderSizePixel = 0
-                OptionButton.Position = UDim2.new(0, 0, 0, (i-1) * 18)
-                OptionButton.Size = UDim2.new(1, 0, 0, 18)
+                OptionButton.Position = UDim2.new(0, 0, 0, (i-1) * 22)
+                OptionButton.Size = UDim2.new(1, 0, 0, 22)
                 OptionButton.Font = Enum.Font.Code
-                OptionButton.Text = option
+                OptionButton.Text = "  " .. option
                 OptionButton.TextColor3 = Colors.TextDark
-                OptionButton.TextSize = 10
+                OptionButton.TextSize = 11
                 OptionButton.TextXAlignment = Enum.TextXAlignment.Left
                 OptionButton.ZIndex = 11
                 
                 OptionButton.MouseEnter:Connect(function()
-                    OptionButton.BackgroundColor3 = Colors.Background
+                    OptionButton.BackgroundColor3 = Colors.ElementHover
                     OptionButton.TextColor3 = Colors.Text
                 end)
                 
                 OptionButton.MouseLeave:Connect(function()
-                    OptionButton.BackgroundColor3 = Colors.Panel
+                    OptionButton.BackgroundColor3 = Colors.Element
                     OptionButton.TextColor3 = Colors.TextDark
                 end)
                 
@@ -473,7 +466,7 @@ function Gamesense:CreateWindow(title)
             end)
             
             return {
-                SetValue = function(value)
+                Set = function(value)
                     if table.find(options, value) then
                         selectedOption = value
                         DropdownButton.Text = name .. ": " .. value
@@ -482,51 +475,54 @@ function Gamesense:CreateWindow(title)
             }
         end
         
-        -- Button (Authentic gamesense style)
-        function Tab:CreateButton(name, callback)
-            local Button = Instance.new("TextButton")
-            Button.Name = name
-            Button.Parent = self.Content
-            Button.BackgroundColor3 = Colors.Panel
-            Button.BorderColor3 = Colors.Border
-            Button.BorderSizePixel = 1
-            Button.Size = UDim2.new(1, -20, 0, 25)
-            Button.Font = Enum.Font.Code
-            Button.Text = name
-            Button.TextColor3 = Colors.Text
-            Button.TextSize = 11
+        -- Button
+        function Tab:Button(name, callback)
+            local ButtonFrame = Instance.new("TextButton")
+            ButtonFrame.Name = name
+            ButtonFrame.Parent = self.Content
+            ButtonFrame.BackgroundColor3 = Colors.Element
+            ButtonFrame.BorderColor3 = Colors.Border
+            ButtonFrame.BorderSizePixel = 1
+            ButtonFrame.Size = UDim2.new(1, -10, 0, 28)
+            ButtonFrame.Font = Enum.Font.Code
+            ButtonFrame.Text = name
+            ButtonFrame.TextColor3 = Colors.Text
+            ButtonFrame.TextSize = 12
             
-            Button.MouseEnter:Connect(function()
-                Button.BackgroundColor3 = Colors.Background
-                Button.BorderColor3 = Colors.Accent
+            ButtonFrame.MouseEnter:Connect(function()
+                ButtonFrame.BackgroundColor3 = Colors.ElementHover
+                ButtonFrame.BorderColor3 = Colors.Accent
             end)
             
-            Button.MouseLeave:Connect(function()
-                Button.BackgroundColor3 = Colors.Panel
-                Button.BorderColor3 = Colors.Border
+            ButtonFrame.MouseLeave:Connect(function()
+                ButtonFrame.BackgroundColor3 = Colors.Element
+                ButtonFrame.BorderColor3 = Colors.Border
             end)
             
-            Button.MouseButton1Click:Connect(function()
+            ButtonFrame.MouseButton1Click:Connect(function()
                 if callback then callback() end
             end)
         end
         
-        -- Color Picker (Authentic gamesense feature)
-        function Tab:CreateColorPicker(name, default, callback)
+        -- Color Picker (with rainbow support)
+        function Tab:ColorPicker(name, default, callback)
             local ColorFrame = Instance.new("Frame")
             ColorFrame.Name = name
             ColorFrame.Parent = self.Content
-            ColorFrame.BackgroundTransparency = 1
-            ColorFrame.Size = UDim2.new(1, -20, 0, 20)
+            ColorFrame.BackgroundColor3 = Colors.Element
+            ColorFrame.BorderColor3 = Colors.Border
+            ColorFrame.BorderSizePixel = 1
+            ColorFrame.Size = UDim2.new(1, -10, 0, 28)
             
             local ColorLabel = Instance.new("TextLabel")
             ColorLabel.Parent = ColorFrame
             ColorLabel.BackgroundTransparency = 1
+            ColorLabel.Position = UDim2.new(0, 8, 0, 0)
             ColorLabel.Size = UDim2.new(0.8, 0, 1, 0)
             ColorLabel.Font = Enum.Font.Code
             ColorLabel.Text = name
             ColorLabel.TextColor3 = Colors.Text
-            ColorLabel.TextSize = 11
+            ColorLabel.TextSize = 12
             ColorLabel.TextXAlignment = Enum.TextXAlignment.Left
             
             local ColorDisplay = Instance.new("Frame")
@@ -534,11 +530,8 @@ function Gamesense:CreateWindow(title)
             ColorDisplay.BackgroundColor3 = default or Color3.fromRGB(255, 255, 255)
             ColorDisplay.BorderColor3 = Colors.Border
             ColorDisplay.BorderSizePixel = 1
-            ColorDisplay.Position = UDim2.new(0.8, 0, 0, 2)
-            ColorDisplay.Size = UDim2.new(0.2, -5, 0, 16)
-            
-            local rainbowEnabled = false
-            local rainbowConnection
+            ColorDisplay.Position = UDim2.new(0.8, 0, 0, 4)
+            ColorDisplay.Size = UDim2.new(0.18, 0, 0, 20)
             
             local ColorButton = Instance.new("TextButton")
             ColorButton.Parent = ColorDisplay
@@ -546,12 +539,15 @@ function Gamesense:CreateWindow(title)
             ColorButton.Size = UDim2.new(1, 0, 1, 0)
             ColorButton.Text = ""
             
+            local rainbowEnabled = false
+            local rainbowConnection
+            
             ColorButton.MouseButton1Click:Connect(function()
                 rainbowEnabled = not rainbowEnabled
                 
                 if rainbowEnabled then
                     rainbowConnection = RunService.Heartbeat:Connect(function()
-                        local rainbowColor = GetRainbowColor(2)
+                        local rainbowColor = GetRainbow()
                         ColorDisplay.BackgroundColor3 = rainbowColor
                         if callback then callback(rainbowColor) end
                     end)
@@ -563,7 +559,7 @@ function Gamesense:CreateWindow(title)
             end)
             
             return {
-                SetValue = function(color)
+                Set = function(color)
                     if rainbowConnection then
                         rainbowConnection:Disconnect()
                         rainbowEnabled = false
@@ -579,4 +575,4 @@ function Gamesense:CreateWindow(title)
     return Window
 end
 
-return Gamesense
+return Library
