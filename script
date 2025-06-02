@@ -1,0 +1,1305 @@
+-- Enhanced Trigger Bot with IMPROVED Scriptable Camera Aimlock - by Crazy0z
+-- Current Date: 2025-06-02 19:00:14 UTC
+-- User: Crazy0z
+-- FIX: Added proper camera control and movement freedom
+if not game:IsLoaded() then 
+    game.Loaded:Wait()
+end
+
+local TriggerBotSettings = {
+    -- Core Settings
+    Enabled = false,
+    ToggleKey = "T",
+    Branding = "Crazy0z-FixedScriptableCamera",
+
+    -- Multi-Hitbox Targeting Settings
+    SelectedHitboxes = {
+        Head = true,
+        Torso = false,
+        HumanoidRootPart = false,
+        UpperTorso = false,
+        LowerTorso = false,
+        LeftArm = false,
+        RightArm = false,
+        LeftLeg = false,
+        RightLeg = false
+    },
+    
+    -- Hitbox Priority for both trigger and aimlock
+    HitboxPriority = {
+        Head = 1,
+        UpperTorso = 2,
+        Torso = 3,
+        HumanoidRootPart = 4,
+        LowerTorso = 5,
+        LeftArm = 6,
+        RightArm = 7,
+        LeftLeg = 8,
+        RightLeg = 9
+    },
+    
+    TeamCheck = true,
+    VisibleCheck = true,
+    HealthCheck = true,
+
+    -- Trigger Settings
+    TriggerDelay = 0.1,
+    HoldTime = 0.05,
+    RandomDelay = false,
+    MinRandomDelay = 0.05,
+    MaxRandomDelay = 0.2,
+
+    -- FIXED Scriptable Camera Aimlock Settings
+    AimlockEnabled = true,
+    AimlockToggleKey = Enum.KeyCode.V,
+    AimlockMethod = "HybridCamera", -- NEW: HybridCamera, ScriptableCamera, VirtualInput, MouseMove, or None
+    AimlockSmoothing = true,
+    AimlockSmoothness = 0.25,
+    AimlockFOV = 300,
+    AimlockSticky = true,
+    AimlockPrediction = true,
+    AimlockPredictionStrength = 0.15,
+    AimlockBreakOnDeath = true,
+    AimlockThroughWalls = false,
+    AimlockMaxDistance = 2000,
+    AimlockMinDistance = 5,
+    AimlockAutoSwitch = true,
+    AimlockAlwaysOn = true,
+    AimlockPrioritizeClosest = true,
+    
+    -- IMPROVED Camera Control Settings
+    HybridCameraMode = true, -- NEW: Allows player movement while aiming
+    CameraRestoreOnDisable = true,
+    CameraUpdateRate = 60,
+    CameraLerpSpeed = 0.15, -- Reduced for better control
+    AllowPlayerMovement = true, -- NEW: Keep player movement enabled
+    CameraFollowPlayer = true, -- NEW: Camera follows player position
+    RestrictCameraMovement = false, -- NEW: Allow manual camera adjustment
+    CameraReturnDelay = 0.5, -- NEW: Delay before returning camera control
+    
+    -- Input Override Settings
+    PreserveMouseControl = true, -- NEW: Keep mouse input for other actions
+    AllowManualAiming = true, -- NEW: Let player adjust aim manually
+    CameraBlendMode = "Lerp", -- NEW: Lerp, Instant, or Smooth
+    
+    -- Available Body Parts
+    AimlockBodyParts = {
+        "Head", "Torso", "HumanoidRootPart", "UpperTorso", "LowerTorso",
+        "LeftArm", "RightArm", "LeftLeg", "RightLeg",
+        "Left Arm", "Right Arm", "Left Leg", "Right Leg"
+    },
+
+    -- ESP Settings
+    ESPEnabled = false,
+    ESPBoxes = true,
+    ESPNames = true,
+    ESPDistance = true,
+    ESPHealth = true,
+    ESPTeamCheck = false,
+    ESPMaxDistance = 1000,
+
+    -- Raycast Settings
+    MaxDistance = 1000,
+    RaycastMethod = "Camera",
+    
+    -- Humanization
+    HitChance = 95,
+    MissOnPurpose = false,
+    
+    -- Safety Features
+    AntiKickback = true,
+    LastShotTime = 0,
+    MinShotInterval = 0.1,
+    
+    -- Visual Settings
+    ShowTarget = true,
+    TargetColor = Color3.fromRGB(255, 0, 0),
+    CrosshairVisible = false,
+    AimlockFOVVisible = false,
+    AimlockFOVColor = Color3.fromRGB(255, 255, 255),
+    AimlockTargetVisible = true,
+    
+    -- Debug
+    DebugMode = false
+}
+
+-- Services
+getgenv().TriggerBotSettings = TriggerBotSettings
+local Camera = workspace.CurrentCamera
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+-- Storage
+local Connections = {}
+local CurrentAimlockTarget = nil
+local CurrentTargetPart = nil
+local LastTarget = nil
+local TriggerQueue = {}
+local AimlockActive = true
+local ESPObjects = {}
+local OriginalCameraType = Camera.CameraType
+local LastMouseUpdate = 0
+local LastCameraUpdate = 0
+local CameraReturnTime = 0
+local PlayerInputEnabled = true
+local OriginalCameraSubject = Camera.CameraSubject
+
+-- NEW: Camera state management
+local CameraState = {
+    IsControlled = false,
+    OriginalCFrame = Camera.CFrame,
+    TargetCFrame = Camera.CFrame,
+    LastPlayerPosition = Vector3.new(0, 0, 0),
+    CameraOffset = Vector3.new(0, 0, 0)
+}
+
+-- Visual Elements
+local target_indicator = Drawing.new("Circle")
+target_indicator.Thickness = 2
+target_indicator.NumSides = 12
+target_indicator.Radius = 8
+target_indicator.Filled = false
+target_indicator.Visible = false
+target_indicator.ZIndex = 999
+target_indicator.Color = Color3.fromRGB(255, 0, 0)
+
+local aimlock_indicator = Drawing.new("Circle")
+aimlock_indicator.Thickness = 4
+aimlock_indicator.NumSides = 20
+aimlock_indicator.Radius = 15
+aimlock_indicator.Filled = false
+aimlock_indicator.Visible = false
+aimlock_indicator.ZIndex = 1001
+aimlock_indicator.Color = Color3.fromRGB(0, 255, 0)
+
+local aimlock_center = Drawing.new("Circle")
+aimlock_center.Thickness = 2
+aimlock_center.NumSides = 8
+aimlock_center.Radius = 3
+aimlock_center.Filled = true
+aimlock_center.Visible = false
+aimlock_center.ZIndex = 1002
+aimlock_center.Color = Color3.fromRGB(255, 255, 0)
+
+local fov_circle = Drawing.new("Circle")
+fov_circle.Thickness = 1
+fov_circle.NumSides = 100
+fov_circle.Radius = 300
+fov_circle.Filled = false
+fov_circle.Visible = false
+fov_circle.ZIndex = 998
+fov_circle.Color = Color3.fromRGB(255, 255, 255)
+fov_circle.Transparency = 0.3
+
+local crosshair_h = Drawing.new("Line")
+crosshair_h.Thickness = 2
+crosshair_h.Color = Color3.fromRGB(0, 255, 0)
+crosshair_h.Visible = false
+crosshair_h.ZIndex = 999
+
+local crosshair_v = Drawing.new("Line")
+crosshair_v.Thickness = 2
+crosshair_v.Color = Color3.fromRGB(0, 255, 0)
+crosshair_v.Visible = false
+crosshair_v.ZIndex = 999
+
+-- Status indicator
+local status_text = Drawing.new("Text")
+status_text.Text = "AIMLOCK: HYBRID MODE"
+status_text.Size = 18
+status_text.Center = false
+status_text.Outline = true
+status_text.OutlineColor = Color3.fromRGB(0, 0, 0)
+status_text.Color = Color3.fromRGB(0, 255, 0)
+status_text.Position = Vector2.new(10, 10)
+status_text.Visible = true
+status_text.ZIndex = 1000
+
+-- Utility Functions
+local function DebugPrint(message)
+    if TriggerBotSettings.DebugMode then
+        print("[TriggerBot Debug]: " .. tostring(message))
+    end
+end
+
+-- NEW: Camera management functions
+local function SaveCameraState()
+    CameraState.OriginalCFrame = Camera.CFrame
+    CameraState.IsControlled = false
+    local localChar = LocalPlayer.Character
+    if localChar and localChar:FindFirstChild("HumanoidRootPart") then
+        CameraState.LastPlayerPosition = localChar.HumanoidRootPart.Position
+    end
+end
+
+local function RestoreCameraControl()
+    if TriggerBotSettings.CameraRestoreOnDisable then
+        Camera.CameraType = OriginalCameraType
+        Camera.CameraSubject = OriginalCameraSubject
+        CameraState.IsControlled = false
+        PlayerInputEnabled = true
+        DebugPrint("Camera control restored to player")
+    end
+end
+
+local function GetPlayerCameraPosition()
+    local localChar = LocalPlayer.Character
+    if localChar and localChar:FindFirstChild("HumanoidRootPart") then
+        local humanoid = localChar:FindFirstChild("Humanoid")
+        if humanoid then
+            -- Calculate proper camera position based on player
+            local rootPart = localChar.HumanoidRootPart
+            local offset = Vector3.new(0, 5, 8) -- Default third-person offset
+            
+            -- Check if in first person
+            if humanoid.CameraOffset.Magnitude > 0 then
+                offset = humanoid.CameraOffset + Vector3.new(0, 0, 2)
+            end
+            
+            return rootPart.CFrame.Position + offset
+        end
+    end
+    return Camera.CFrame.Position
+end
+
+-- Enhanced body part detection system
+local function GetValidBodyPart(character, targetPart)
+    local part = character:FindFirstChild(targetPart)
+    if part and part:IsA("BasePart") then return part end
+    
+    local alternatives = {
+        ["Head"] = {"head", "Head"},
+        ["Torso"] = {"Torso", "UpperTorso", "LowerTorso"},
+        ["HumanoidRootPart"] = {"HumanoidRootPart", "Torso"},
+        ["UpperTorso"] = {"UpperTorso", "Torso"},
+        ["LowerTorso"] = {"LowerTorso", "Torso"},
+        ["LeftArm"] = {"Left Arm", "LeftUpperArm", "LeftLowerArm", "LeftArm"},
+        ["RightArm"] = {"Right Arm", "RightUpperArm", "RightLowerArm", "RightArm"},
+        ["LeftLeg"] = {"Left Leg", "LeftUpperLeg", "LeftLowerLeg", "LeftLeg"},
+        ["RightLeg"] = {"Right Leg", "RightUpperLeg", "RightLowerLeg", "RightLeg"},
+        ["Left Arm"] = {"LeftArm", "LeftUpperArm", "LeftLowerArm"},
+        ["Right Arm"] = {"RightArm", "RightUpperArm", "RightLowerArm"},
+        ["Left Leg"] = {"LeftLeg", "LeftUpperLeg", "LeftLowerLeg"},
+        ["Right Leg"] = {"RightLeg", "RightUpperLeg", "RightLowerLeg"}
+    }
+    
+    if alternatives[targetPart] then
+        for _, altName in pairs(alternatives[targetPart]) do
+            part = character:FindFirstChild(altName)
+            if part and part:IsA("BasePart") then return part end
+        end
+    end
+    
+    return character:FindFirstChild("HumanoidRootPart")
+end
+
+local function GetPlayerParts(player)
+    if not player.Character then return {} end
+    local parts = {}
+    local priorityParts = {"Head", "UpperTorso", "LowerTorso", "HumanoidRootPart", "Torso"}
+    
+    for _, name in ipairs(priorityParts) do
+        local part = GetValidBodyPart(player.Character, name)
+        if part then
+            parts[name] = part
+        end
+    end
+    return parts
+end
+
+local function PickBestHitbox(player)
+    if not player.Character then return nil end
+    
+    local parts = GetPlayerParts(player)
+    local bestPart = nil
+    local highestPriority = math.huge
+    
+    for hitboxName, selected in pairs(TriggerBotSettings.SelectedHitboxes) do
+        if selected and parts[hitboxName] then
+            local priority = TriggerBotSettings.HitboxPriority[hitboxName] or 10
+            if priority < highestPriority then
+                highestPriority = priority
+                bestPart = parts[hitboxName]
+            end
+        end
+    end
+    
+    if not bestPart then
+        for _, name in ipairs({"Head", "UpperTorso", "Torso", "HumanoidRootPart", "LowerTorso"}) do
+            if parts[name] then
+                return parts[name]
+            end
+        end
+    end
+    
+    return bestPart
+end
+
+local function GetDistance(pos1, pos2)
+    return (pos1 - pos2).Magnitude
+end
+
+local function IsValidTarget(player)
+    if not player or player == LocalPlayer then return false end
+    
+    local character = player.Character
+    if not character then return false end
+    
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then return false end
+    
+    if TriggerBotSettings.HealthCheck and humanoid.Health <= 0 then return false end
+    
+    if TriggerBotSettings.TeamCheck and player.Team == LocalPlayer.Team then return false end
+    
+    return true
+end
+
+local function IsPlayerVisible(targetPart)
+    if TriggerBotSettings.AimlockThroughWalls then return true end
+    if not TriggerBotSettings.VisibleCheck then return true end
+    
+    local localCharacter = LocalPlayer.Character
+    if not localCharacter then return false end
+    
+    local origin = Camera.CFrame.Position
+    local direction = (targetPart.Position - origin).Unit * 1000
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {localCharacter}
+    
+    local result = workspace:Raycast(origin, direction, raycastParams)
+    
+    if result then
+        local hitCharacter = result.Instance.Parent
+        return hitCharacter == targetPart.Parent
+    end
+    
+    return false
+end
+
+local function GetClosestPlayerToCenter()
+    local bestPlayer = nil
+    local shortestDistance = math.huge
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and IsValidTarget(player) then
+            local targetPart = PickBestHitbox(player)
+            if targetPart then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                if onScreen then
+                    local distance2D = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+                    
+                    if distance2D <= TriggerBotSettings.AimlockFOV then
+                        local distance = distance2D
+                        if TriggerBotSettings.AimlockPrioritizeClosest then
+                            local localChar = LocalPlayer.Character
+                            if localChar and localChar:FindFirstChild("HumanoidRootPart") then
+                                local distance3D = GetDistance(localChar.HumanoidRootPart.Position, targetPart.Position)
+                                if distance3D >= TriggerBotSettings.AimlockMinDistance and distance3D <= TriggerBotSettings.AimlockMaxDistance then
+                                    distance = distance2D + (distance3D * 0.01)
+                                else
+                                    continue
+                                end
+                            end
+                        end
+                        
+                        if distance < shortestDistance then
+                            shortestDistance = distance
+                            bestPlayer = player
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return bestPlayer
+end
+
+-- NEW: HYBRID CAMERA AIMLOCK - Best of both worlds!
+local function UpdateHybridAimlock()
+    local shouldBeActive = TriggerBotSettings.AimlockEnabled and (TriggerBotSettings.AimlockAlwaysOn or AimlockActive)
+    
+    if not shouldBeActive then
+        aimlock_indicator.Visible = false
+        aimlock_center.Visible = false
+        status_text.Text = "AIMLOCK: DISABLED"
+        status_text.Color = Color3.fromRGB(255, 0, 0)
+        CurrentAimlockTarget = nil
+        CurrentTargetPart = nil
+        RestoreCameraControl()
+        return
+    end
+    
+    status_text.Text = "AIMLOCK: " .. TriggerBotSettings.AimlockMethod
+    status_text.Color = Color3.fromRGB(0, 255, 0)
+    
+    -- Check current target validity
+    if CurrentAimlockTarget then
+        if not IsValidTarget(CurrentAimlockTarget) then
+            CurrentAimlockTarget = nil
+            CurrentTargetPart = nil
+            DebugPrint("Aimlock target lost - invalid")
+        elseif TriggerBotSettings.AimlockBreakOnDeath then
+            local humanoid = CurrentAimlockTarget.Character and CurrentAimlockTarget.Character:FindFirstChild("Humanoid")
+            if humanoid and humanoid.Health <= 0 then
+                CurrentAimlockTarget = nil
+                CurrentTargetPart = nil
+                DebugPrint("Aimlock target lost - died")
+            end
+        end
+    end
+    
+    -- Get new target if needed
+    if not CurrentAimlockTarget or TriggerBotSettings.AimlockAutoSwitch then
+        local newTarget = GetClosestPlayerToCenter()
+        if newTarget then
+            if not CurrentAimlockTarget or 
+               (TriggerBotSettings.AimlockAutoSwitch and newTarget ~= CurrentAimlockTarget) then
+                CurrentAimlockTarget = newTarget
+                CurrentTargetPart = PickBestHitbox(newTarget)
+                DebugPrint("Hybrid aimlock target acquired: " .. newTarget.Name)
+            end
+        end
+    end
+    
+    -- Apply aimlock based on method
+    if CurrentAimlockTarget and CurrentTargetPart then
+        -- Apply prediction
+        local targetPosition = CurrentTargetPart.Position
+        if TriggerBotSettings.AimlockPrediction then
+            local humanoidRootPart = CurrentAimlockTarget.Character:FindFirstChild("HumanoidRootPart")
+            if humanoidRootPart then
+                local velocity = humanoidRootPart.Velocity
+                local distance = GetDistance(Camera.CFrame.Position, targetPosition)
+                local timeToReach = distance / 1000
+                targetPosition = targetPosition + (velocity * TriggerBotSettings.AimlockPredictionStrength * timeToReach)
+            end
+        end
+        
+        local screenPos, onScreen = Camera:WorldToViewportPoint(targetPosition)
+        
+        if onScreen then
+            -- Show visual indicators
+            if TriggerBotSettings.AimlockTargetVisible then
+                aimlock_indicator.Position = Vector2.new(screenPos.X, screenPos.Y)
+                aimlock_indicator.Visible = true
+                aimlock_center.Position = Vector2.new(screenPos.X, screenPos.Y)
+                aimlock_center.Visible = true
+                
+                status_text.Text = "AIMLOCK: " .. CurrentAimlockTarget.Name .. " (" .. TriggerBotSettings.AimlockMethod .. ")"
+            end
+            
+            -- NEW: HYBRID CAMERA METHOD - Maintains player control!
+            if TriggerBotSettings.AimlockMethod == "HybridCamera" then
+                local currentTime = tick()
+                local updateInterval = 1 / TriggerBotSettings.CameraUpdateRate
+                if currentTime - LastCameraUpdate < updateInterval then return end
+                LastCameraUpdate = currentTime
+                
+                -- Keep camera in custom mode for player movement
+                Camera.CameraType = Enum.CameraType.Custom
+                
+                -- Get current camera position (following player)
+                local currentCFrame = Camera.CFrame
+                local playerCameraPos = GetPlayerCameraPosition()
+                
+                -- Calculate target direction from player's camera position
+                local targetDirection = (targetPosition - playerCameraPos).Unit
+                local targetCFrame = CFrame.lookAt(playerCameraPos, targetPosition)
+                
+                -- Apply smooth aimlock while preserving player movement
+                if TriggerBotSettings.AimlockSmoothing then
+                    -- Blend towards target while keeping player's camera position
+                    local currentLookVector = currentCFrame.LookVector
+                    local targetLookVector = targetDirection
+                    local blendedLookVector = currentLookVector:Lerp(targetLookVector, TriggerBotSettings.CameraLerpSpeed)
+                    
+                    -- Maintain player's camera position but adjust direction
+                    Camera.CFrame = CFrame.lookAt(currentCFrame.Position, currentCFrame.Position + blendedLookVector)
+                else
+                    Camera.CFrame = CFrame.lookAt(currentCFrame.Position, targetPosition)
+                end
+                
+                PlayerInputEnabled = true -- Keep input enabled
+                DebugPrint("Hybrid camera updated - player can still move")
+                
+            -- ORIGINAL: Full scriptable camera control (locks player)
+            elseif TriggerBotSettings.AimlockMethod == "ScriptableCamera" then
+                local currentTime = tick()
+                local updateInterval = 1 / TriggerBotSettings.CameraUpdateRate
+                if currentTime - LastCameraUpdate < updateInterval then return end
+                LastCameraUpdate = currentTime
+                
+                if Camera.CameraType ~= Enum.CameraType.Scriptable then
+                    Camera.CameraType = Enum.CameraType.Scriptable
+                    DebugPrint("Camera set to Scriptable mode")
+                end
+                
+                local currentCFrame = Camera.CFrame
+                local targetCFrame = CFrame.lookAt(currentCFrame.Position, targetPosition)
+                
+                if TriggerBotSettings.AimlockSmoothing then
+                    Camera.CFrame = currentCFrame:Lerp(targetCFrame, TriggerBotSettings.CameraLerpSpeed)
+                else
+                    Camera.CFrame = targetCFrame
+                end
+                
+                PlayerInputEnabled = false -- Player movement restricted
+                DebugPrint("Full scriptable camera - movement locked")
+                
+            -- VirtualInput method (fallback)
+            elseif TriggerBotSettings.AimlockMethod == "VirtualInput" then
+                if Camera.CameraType == Enum.CameraType.Scriptable then
+                    Camera.CameraType = Enum.CameraType.Custom
+                end
+                
+                local currentTime = tick()
+                if currentTime - LastMouseUpdate > 0.016 then
+                    LastMouseUpdate = currentTime
+                    
+                    local targetScreenPos = Vector2.new(screenPos.X, screenPos.Y)
+                    
+                    if TriggerBotSettings.AimlockSmoothing then
+                        local currentMousePos = UserInputService:GetMouseLocation()
+                        local deltaPos = targetScreenPos - currentMousePos
+                        deltaPos = deltaPos * TriggerBotSettings.AimlockSmoothness
+                        targetScreenPos = currentMousePos + deltaPos
+                    end
+                    
+                    pcall(function()
+                        VirtualInputManager:SendMouseMoveEvent(targetScreenPos.X, targetScreenPos.Y, game)
+                    end)
+                end
+                
+                PlayerInputEnabled = true
+                
+            -- MouseMove method (backup)
+            elseif TriggerBotSettings.AimlockMethod == "MouseMove" then
+                if Camera.CameraType == Enum.CameraType.Scriptable then
+                    Camera.CameraType = Enum.CameraType.Custom
+                end
+                
+                local mousePos = UserInputService:GetMouseLocation()
+                local targetScreenPos = Vector2.new(screenPos.X, screenPos.Y)
+                local deltaPos = targetScreenPos - mousePos
+                
+                if TriggerBotSettings.AimlockSmoothing then
+                    deltaPos = deltaPos * TriggerBotSettings.AimlockSmoothness
+                end
+                
+                local newMousePos = mousePos + deltaPos
+                
+                local success = false
+                if not success then
+                    success = pcall(function()
+                        mousemoveabs(newMousePos.X, newMousePos.Y)
+                        return true
+                    end)
+                end
+                
+                if not success then
+                    success = pcall(function()
+                        mousemoverel(deltaPos.X, deltaPos.Y)
+                        return true
+                    end)
+                end
+                
+                if not success then
+                    pcall(function()
+                        VirtualInputManager:SendMouseMoveEvent(newMousePos.X, newMousePos.Y, game)
+                    end)
+                end
+                
+                PlayerInputEnabled = true
+            end
+            
+        else
+            aimlock_indicator.Visible = false
+            aimlock_center.Visible = false
+            if not TriggerBotSettings.AimlockSticky then
+                CurrentAimlockTarget = nil
+                CurrentTargetPart = nil
+                RestoreCameraControl()
+            end
+        end
+    else
+        aimlock_indicator.Visible = false
+        aimlock_center.Visible = false
+        status_text.Text = "AIMLOCK: SEARCHING... (" .. TriggerBotSettings.AimlockMethod .. ")"
+        status_text.Color = Color3.fromRGB(255, 255, 0)
+        RestoreCameraControl()
+    end
+end
+
+-- Trigger Bot Functions (unchanged)
+local function GetTargetUnderCrosshair()
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local unitRay
+    
+    if TriggerBotSettings.RaycastMethod == "Camera" then
+        unitRay = Camera:ScreenPointToRay(screenCenter.X, screenCenter.Y)
+    else
+        unitRay = Camera:ScreenPointToRay(Mouse.X, Mouse.Y)
+    end
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+    
+    local result = workspace:Raycast(unitRay.Origin, unitRay.Direction * TriggerBotSettings.MaxDistance, raycastParams)
+    
+    if result then
+        local hitPart = result.Instance
+        local hitCharacter = hitPart.Parent
+        
+        local player = Players:GetPlayerFromCharacter(hitCharacter)
+        if player and IsValidTarget(player) then
+            for hitboxName, selected in pairs(TriggerBotSettings.SelectedHitboxes) do
+                if selected then
+                    local targetPart = GetValidBodyPart(hitCharacter, hitboxName)
+                    if targetPart and (hitPart == targetPart or hitPart.Parent == targetPart or hitPart:IsDescendantOf(targetPart)) then
+                        if IsPlayerVisible(targetPart) then
+                            return player, targetPart, result.Position, hitboxName
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return nil, nil, nil, nil
+end
+
+local function CalculateHitChance()
+    return math.random(1, 100) <= TriggerBotSettings.HitChance
+end
+
+local function GetRandomDelay()
+    if TriggerBotSettings.RandomDelay then
+        return math.random() * (TriggerBotSettings.MaxRandomDelay - TriggerBotSettings.MinRandomDelay) + TriggerBotSettings.MinRandomDelay
+    end
+    return TriggerBotSettings.TriggerDelay
+end
+
+local function CanShoot()
+    local currentTime = tick()
+    return currentTime - TriggerBotSettings.LastShotTime >= TriggerBotSettings.MinShotInterval
+end
+
+local function FireWeapon()
+    if not CanShoot() then return end
+    
+    TriggerBotSettings.LastShotTime = tick()
+    
+    local success = false
+    
+    if not success then
+        success = pcall(function()
+            mouse1press()
+            task.wait(TriggerBotSettings.HoldTime)
+            mouse1release()
+            DebugPrint("Fired using mouse1press/release")
+            return true
+        end)
+    end
+    
+    if not success then
+        success = pcall(function()
+            mouse1click()
+            DebugPrint("Fired using mouse1click")
+            return true
+        end)
+    end
+    
+    if success then
+        DebugPrint("Weapon fired successfully")
+    else
+        DebugPrint("Failed to fire weapon")
+    end
+end
+
+local function TriggerShot(player, targetPart, hitPosition, hitboxName)
+    if not CalculateHitChance() then
+        DebugPrint("Shot missed due to hit chance")
+        return
+    end
+    
+    if TriggerBotSettings.MissOnPurpose and math.random(1, 20) == 1 then
+        DebugPrint("Intentionally missed shot")
+        return
+    end
+    
+    local delay = GetRandomDelay()
+    
+    table.insert(TriggerQueue, {
+        player = player,
+        part = targetPart,
+        position = hitPosition,
+        hitbox = hitboxName,
+        time = tick() + delay
+    })
+    
+    DebugPrint("Queued shot for " .. player.Name .. " (" .. hitboxName .. ") with delay " .. delay)
+end
+
+local function UpdateTriggerBot()
+    if not TriggerBotSettings.Enabled then return end
+    
+    local player, targetPart, hitPosition, hitboxName = GetTargetUnderCrosshair()
+    
+    if player and targetPart then
+        if TriggerBotSettings.ShowTarget then
+            local screenPos, onScreen = Camera:WorldToViewportPoint(hitPosition)
+            if onScreen then
+                target_indicator.Position = Vector2.new(screenPos.X, screenPos.Y)
+                target_indicator.Visible = true
+                target_indicator.Color = TriggerBotSettings.TargetColor
+            else
+                target_indicator.Visible = false
+            end
+        end
+        
+        if LastTarget ~= player or CanShoot() then
+            TriggerShot(player, targetPart, hitPosition, hitboxName)
+            LastTarget = player
+        end
+    else
+        target_indicator.Visible = false
+        LastTarget = nil
+    end
+    
+    local currentTime = tick()
+    for i = #TriggerQueue, 1, -1 do
+        local shot = TriggerQueue[i]
+        if currentTime >= shot.time then
+            FireWeapon()
+            table.remove(TriggerQueue, i)
+        end
+    end
+end
+
+-- ESP Functions (keeping compact for space)
+local function CreateESP(player)
+    local esp = {
+        Box = Drawing.new("Square"),
+        Name = Drawing.new("Text"),
+        Distance = Drawing.new("Text"),
+        Health = Drawing.new("Text"),
+        Player = player
+    }
+    
+    esp.Box.Thickness = 2
+    esp.Box.Filled = false
+    esp.Box.Color = Color3.fromRGB(255, 255, 255)
+    esp.Box.Visible = false
+    esp.Box.ZIndex = 2
+    
+    esp.Name.Text = player.Name
+    esp.Name.Size = 16
+    esp.Name.Center = true
+    esp.Name.Outline = true
+    esp.Name.OutlineColor = Color3.fromRGB(0, 0, 0)
+    esp.Name.Color = Color3.fromRGB(255, 255, 255)
+    esp.Name.Visible = false
+    esp.Name.ZIndex = 2
+    
+    esp.Distance.Text = ""
+    esp.Distance.Size = 14
+    esp.Distance.Center = true
+    esp.Distance.Outline = true
+    esp.Distance.OutlineColor = Color3.fromRGB(0, 0, 0)
+    esp.Distance.Color = Color3.fromRGB(255, 255, 0)
+    esp.Distance.Visible = false
+    esp.Distance.ZIndex = 2
+    
+    esp.Health.Text = ""
+    esp.Health.Size = 14
+    esp.Health.Center = true
+    esp.Health.Outline = true
+    esp.Health.OutlineColor = Color3.fromRGB(0, 0, 0)
+    esp.Health.Color = Color3.fromRGB(0, 255, 0)
+    esp.Health.Visible = false
+    esp.Health.ZIndex = 2
+    
+    ESPObjects[player] = esp
+end
+
+local function RemoveESP(player)
+    local esp = ESPObjects[player]
+    if esp then
+        esp.Box:Remove()
+        esp.Name:Remove()
+        esp.Distance:Remove()
+        esp.Health:Remove()
+        ESPObjects[player] = nil
+    end
+end
+
+local function UpdateESP()
+    if not TriggerBotSettings.ESPEnabled then
+        for _, esp in pairs(ESPObjects) do
+            esp.Box.Visible = false
+            esp.Name.Visible = false
+            esp.Distance.Visible = false
+            esp.Health.Visible = false
+        end
+        return
+    end
+    
+    local localCharacter = LocalPlayer.Character
+    local localRoot = localCharacter and localCharacter:FindFirstChild("HumanoidRootPart")
+    
+    for player, esp in pairs(ESPObjects) do
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
+            local humanoid = player.Character.Humanoid
+            local rootPart = player.Character.HumanoidRootPart
+            
+            if humanoid.Health > 0 then
+                if TriggerBotSettings.ESPTeamCheck and player.Team == LocalPlayer.Team then
+                    esp.Box.Visible = false
+                    esp.Name.Visible = false
+                    esp.Distance.Visible = false
+                    esp.Health.Visible = false
+                    continue
+                end
+                
+                local distance = 0
+                if localRoot then
+                    distance = GetDistance(rootPart.Position, localRoot.Position)
+                    if distance > TriggerBotSettings.ESPMaxDistance then
+                        esp.Box.Visible = false
+                        esp.Name.Visible = false
+                        esp.Distance.Visible = false
+                        esp.Health.Visible = false
+                        continue
+                    end
+                end
+                
+                local vector, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+                
+                if onScreen then
+                    local head = player.Character:FindFirstChild("Head")
+                    if head then
+                        local headVector = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+                        local legVector = Camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
+                        
+                        local healthPercent = humanoid.Health / humanoid.MaxHealth
+                        local color = Color3.fromRGB(
+                            math.floor(255 * (1 - healthPercent)),
+                            math.floor(255 * healthPercent),
+                            0
+                        )
+                        
+                        if player == CurrentAimlockTarget then
+                            color = Color3.fromRGB(255, 0, 255)
+                        end
+                        
+                        if TriggerBotSettings.ESPBoxes then
+                            esp.Box.Size = Vector2.new(1000 / vector.Z, headVector.Y - legVector.Y)
+                            esp.Box.Position = Vector2.new(vector.X - esp.Box.Size.X / 2, legVector.Y)
+                            esp.Box.Color = color
+                            esp.Box.Visible = true
+                        else
+                            esp.Box.Visible = false
+                        end
+                        
+                        if TriggerBotSettings.ESPNames then
+                            esp.Name.Position = Vector2.new(vector.X, headVector.Y - 30)
+                            esp.Name.Color = color
+                            esp.Name.Visible = true
+                        else
+                            esp.Name.Visible = false
+                        end
+                        
+                        if TriggerBotSettings.ESPDistance then
+                            esp.Distance.Text = math.floor(distance) .. " studs"
+                            esp.Distance.Position = Vector2.new(vector.X, legVector.Y + 20)
+                            esp.Distance.Visible = true
+                        else
+                            esp.Distance.Visible = false
+                        end
+                        
+                        if TriggerBotSettings.ESPHealth then
+                            esp.Health.Text = math.floor(humanoid.Health) .. "/" .. math.floor(humanoid.MaxHealth)
+                            esp.Health.Position = Vector2.new(vector.X, legVector.Y + 35)
+                            esp.Health.Color = color
+                            esp.Health.Visible = true
+                        else
+                            esp.Health.Visible = false
+                        end
+                    end
+                else
+                    esp.Box.Visible = false
+                    esp.Name.Visible = false
+                    esp.Distance.Visible = false
+                    esp.Health.Visible = false
+                end
+            else
+                esp.Box.Visible = false
+                esp.Name.Visible = false
+                esp.Distance.Visible = false
+                esp.Health.Visible = false
+            end
+        else
+            esp.Box.Visible = false
+            esp.Name.Visible = false
+            esp.Distance.Visible = false
+            esp.Health.Visible = false
+        end
+    end
+end
+
+-- Input Handling
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == TriggerBotSettings.AimlockToggleKey then
+        TriggerBotSettings.AimlockAlwaysOn = not TriggerBotSettings.AimlockAlwaysOn
+        DebugPrint("Aimlock Always-On: " .. tostring(TriggerBotSettings.AimlockAlwaysOn))
+    end
+end)
+
+-- ESP Player Management
+Players.PlayerAdded:Connect(CreateESP)
+Players.PlayerRemoving:Connect(RemoveESP)
+
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        CreateESP(player)
+    end
+end
+
+-- UI Creation
+local Library = loadstring(game:HttpGet("https://pastebin.com/raw/wMY7Nngb"))()
+
+local Window = Library:CreateWindow({
+    Title = "Crazy0z FIXED Hybrid Aimlock", 
+    Center = true, 
+    AutoShow = true, 
+    TabPadding = 8, 
+    MenuFadeTime = 0.2
+})
+
+local MainTab = Window:AddTab("Main")
+local AimlockTab = Window:AddTab("Hybrid Aimlock")
+local ESPTab = Window:AddTab("ESP")
+local TargetingTab = Window:AddTab("Targeting")
+local AdvancedTab = Window:AddTab("Advanced")
+
+-- Main Settings
+local MainBox = MainTab:AddLeftTabbox("Core Settings") do
+    local Main = MainBox:AddTab("Main")
+    
+    Main:AddToggle("TriggerEnabled", {Text = "Enable TriggerBot", Default = false}):OnChanged(function(value)
+        TriggerBotSettings.Enabled = value
+        DebugPrint("TriggerBot " .. (value and "Enabled" or "Disabled"))
+    end)
+    
+    Main:AddSlider('TriggerDelay', {
+        Text = 'Trigger Delay (seconds)',
+        Default = 0.1,
+        Min = 0,
+        Max = 1,
+        Rounding = 3,
+        Compact = false,
+    }):OnChanged(function(value)
+        TriggerBotSettings.TriggerDelay = value
+    end)
+    
+    Main:AddSlider('HoldTime', {
+        Text = 'Hold Time (seconds)',
+        Default = 0.05,
+        Min = 0.01,
+        Max = 0.5,
+        Rounding = 3,
+        Compact = false,
+    }):OnChanged(function(value)
+        TriggerBotSettings.HoldTime = value
+    end)
+end
+
+local HitboxBox = MainTab:AddLeftTabbox("Hitbox Selection") do
+    local Hitbox = HitboxBox:AddTab("Hitboxes")
+    
+    Hitbox:AddLabel("Select hitboxes for both trigger and aimlock:")
+    
+    Hitbox:AddToggle("Head", {Text = "Head (Priority 1)", Default = true}):OnChanged(function(value)
+        TriggerBotSettings.SelectedHitboxes.Head = value
+    end)
+    
+    Hitbox:AddToggle("UpperTorso", {Text = "Upper Torso (Priority 2)", Default = false}):OnChanged(function(value)
+        TriggerBotSettings.SelectedHitboxes.UpperTorso = value
+    end)
+    
+    Hitbox:AddToggle("Torso", {Text = "Torso (Priority 3)", Default = false}):OnChanged(function(value)
+        TriggerBotSettings.SelectedHitboxes.Torso = value
+    end)
+    
+    Hitbox:AddToggle("HumanoidRootPart", {Text = "Humanoid Root Part (Priority 4)", Default = false}):OnChanged(function(value)
+        TriggerBotSettings.SelectedHitboxes.HumanoidRootPart = value
+    end)
+    
+    Hitbox:AddButton("Select All Body Parts", function()
+        for hitboxName, _ in pairs(TriggerBotSettings.SelectedHitboxes) do
+            TriggerBotSettings.SelectedHitboxes[hitboxName] = true
+        end
+    end)
+    
+    Hitbox:AddButton("Select Only Head", function()
+        for hitboxName, _ in pairs(TriggerBotSettings.SelectedHitboxes) do
+            TriggerBotSettings.SelectedHitboxes[hitboxName] = false
+        end
+        TriggerBotSettings.SelectedHitboxes.Head = true
+    end)
+end
+
+-- NEW: FIXED Hybrid Aimlock Settings
+local AimlockBox = AimlockTab:AddLeftTabbox("FIXED Hybrid Aimlock") do
+    local Aimlock = AimlockBox:AddTab("Core")
+    
+    Aimlock:AddToggle("AimlockEnabled", {Text = "Enable Aimlock", Default = true}):OnChanged(function(value)
+        TriggerBotSettings.AimlockEnabled = value
+    end)
+    
+    Aimlock:AddToggle("AimlockAlwaysOn", {Text = "Always-On Mode", Default = true}):OnChanged(function(value)
+        TriggerBotSettings.AimlockAlwaysOn = value
+    end)
+    
+    Aimlock:AddLabel("Press 'V' to toggle always-on mode")
+    Aimlock:AddLabel("🔥 FIXED: You can now move while aiming! 🔥")
+    
+    Aimlock:AddDropdown("AimlockMethod", {
+        Text = "Aimlock Method",
+        Default = "HybridCamera",
+        Values = {"HybridCamera", "ScriptableCamera", "VirtualInput", "MouseMove", "None"}
+    }):OnChanged(function(value)
+        TriggerBotSettings.AimlockMethod = value
+        DebugPrint("Aimlock method changed to: " .. value)
+    end)
+    
+    Aimlock:AddLabel("🟢 HybridCamera = BEST! Aim + Move freely")
+    Aimlock:AddLabel("🟡 ScriptableCamera = Locks movement")
+    Aimlock:AddLabel("🟡 VirtualInput = Good for shift lock")
+    Aimlock:AddLabel("🔴 MouseMove = Backup method")
+    
+    Aimlock:AddSlider('AimlockFOV', {
+        Text = 'Aimlock FOV (pixels)',
+        Default = 300,
+        Min = 50,
+        Max = 800,
+        Rounding = 1,
+        Compact = false,
+    }):OnChanged(function(value)
+        TriggerBotSettings.AimlockFOV = value
+        fov_circle.Radius = value
+    end)
+    
+    Aimlock:AddToggle("AimlockSmoothing", {Text = "Smoothing", Default = true}):OnChanged(function(value)
+        TriggerBotSettings.AimlockSmoothing = value
+    end)
+    
+    Aimlock:AddSlider('CameraLerpSpeed', {
+        Text = 'Camera Lerp Speed',
+        Default = 0.15,
+        Min = 0.01,
+        Max = 1,
+        Rounding = 3,
+        Compact = false,
+    }):OnChanged(function(value)
+        TriggerBotSettings.CameraLerpSpeed = value
+    end)
+    
+    Aimlock:AddSlider('CameraUpdateRate', {
+        Text = 'Camera Update Rate (FPS)',
+        Default = 60,
+        Min = 30,
+        Max = 120,
+        Rounding = 1,
+        Compact = false,
+    }):OnChanged(function(value)
+        TriggerBotSettings.CameraUpdateRate = value
+    end)
+    
+    Aimlock:AddToggle("AllowPlayerMovement", {Text = "Allow Player Movement", Default = true}):OnChanged(function(value)
+        TriggerBotSettings.AllowPlayerMovement = value
+    end)
+    
+    Aimlock:AddToggle("CameraFollowPlayer", {Text = "Camera Follow Player", Default = true}):OnChanged(function(value)
+        TriggerBotSettings.CameraFollowPlayer = value
+    end)
+    
+    Aimlock:AddToggle("AimlockPrediction", {Text = "Movement Prediction", Default = true}):OnChanged(function(value)
+        TriggerBotSettings.AimlockPrediction = value
+    end)
+    
+    Aimlock:AddSlider('AimlockPredictionStrength', {
+        Text = 'Prediction Strength',
+        Default = 0.15,
+        Min = 0,
+        Max = 1,
+        Rounding = 3,
+        Compact = false,
+    }):OnChanged(function(value)
+        TriggerBotSettings.AimlockPredictionStrength = value
+    end)
+    
+    Aimlock:AddToggle("AimlockAutoSwitch", {Text = "Auto Switch Targets", Default = true}):OnChanged(function(value)
+        TriggerBotSettings.AimlockAutoSwitch = value
+    end)
+end
+
+-- ESP Settings (simplified)
+local ESPBox = ESPTab:AddLeftTabbox("ESP Settings") do
+    local ESP = ESPBox:AddTab("Main")
+    
+    ESP:AddToggle("ESPEnabled", {Text = "Enable ESP", Default = false}):OnChanged(function(value)
+        TriggerBotSettings.ESPEnabled = value
+    end)
+    
+    ESP:AddToggle("ESPBoxes", {Text = "Show Boxes", Default = true}):OnChanged(function(value)
+        TriggerBotSettings.ESPBoxes = value
+    end)
+    
+    ESP:AddToggle("ESPNames", {Text = "Show Names", Default = true}):OnChanged(function(value)
+        TriggerBotSettings.ESPNames = value
+    end)
+    
+    ESP:AddToggle("AimlockTargetVisible", {Text = "Show Target Indicator", Default = true}):OnChanged(function(value)
+        TriggerBotSettings.AimlockTargetVisible = value
+    end)
+    
+    ESP:AddToggle("AimlockFOVVisible", {Text = "Show FOV Circle", Default = false}):OnChanged(function(value)
+        TriggerBotSettings.AimlockFOVVisible = value
+        fov_circle.Visible = value
+    end)
+end
+
+-- Targeting Settings (simplified)
+local TargetingBox = TargetingTab:AddLeftTabbox("Targeting Options") do
+    local Targeting = TargetingBox:AddTab("Targeting")
+    
+    Targeting:AddToggle("TeamCheck", {Text = "Team Check", Default = true}):OnChanged(function(value)
+        TriggerBotSettings.TeamCheck = value
+    end)
+    
+    Targeting:AddToggle("VisibleCheck", {Text = "Visible Check", Default = true}):OnChanged(function(value)
+        TriggerBotSettings.VisibleCheck = value
+    end)
+    
+    Targeting:AddToggle("HealthCheck", {Text = "Health Check", Default = true}):OnChanged(function(value)
+        TriggerBotSettings.HealthCheck = value
+    end)
+    
+    Targeting:AddSlider('AimlockMaxDistance', {
+        Text = 'Max Distance (studs)',
+        Default = 2000,
+        Min = 100,
+        Max = 5000,
+        Rounding = 1,
+        Compact = false,
+    }):OnChanged(function(value)
+        TriggerBotSettings.AimlockMaxDistance = value
+    end)
+end
+
+-- Advanced Settings
+local AdvancedBox = AdvancedTab:AddLeftTabbox("Advanced Options") do
+    local Advanced = AdvancedBox:AddTab("Info")
+    
+    Advanced:AddSlider('HitChance', {
+        Text = 'Hit Chance (%)',
+        Default = 95,
+        Min = 1,
+        Max = 100,
+        Rounding = 1,
+        Compact = false,
+    }):OnChanged(function(value)
+        TriggerBotSettings.HitChance = value
+    end)
+    
+    Advanced:AddToggle("DebugMode", {Text = "Debug Mode", Default = false}):OnChanged(function(value)
+        TriggerBotSettings.DebugMode = value
+    end)
+    
+    Advanced:AddLabel("Camera Mode: " .. tostring(Camera.CameraType))
+    Advanced:AddLabel("Player Input: " .. (PlayerInputEnabled and "ENABLED" or "DISABLED"))
+    Advanced:AddLabel("Current Target: " .. (CurrentAimlockTarget and CurrentAimlockTarget.Name or "None"))
+end
+
+-- Update functions
+local function UpdateCrosshair()
+    if TriggerBotSettings.CrosshairVisible then
+        local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        
+        crosshair_h.From = Vector2.new(center.X - 10, center.Y)
+        crosshair_h.To = Vector2.new(center.X + 10, center.Y)
+        crosshair_h.Visible = true
+        
+        crosshair_v.From = Vector2.new(center.X, center.Y - 10)
+        crosshair_v.To = Vector2.new(center.X, center.Y + 10)
+        crosshair_v.Visible = true
+    else
+        crosshair_h.Visible = false
+        crosshair_v.Visible = false
+    end
+end
+
+local function UpdateFOVCircle()
+    if TriggerBotSettings.AimlockFOVVisible then
+        local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        fov_circle.Position = center
+        fov_circle.Radius = TriggerBotSettings.AimlockFOV
+        fov_circle.Visible = true
+    else
+        fov_circle.Visible = false
+    end
+end
+
+-- Main update loop
+Connections.MainLoop = RunService.Heartbeat:Connect(function()
+    UpdateTriggerBot()
+    UpdateHybridAimlock() -- NEW: Fixed hybrid aimlock system
+    UpdateESP()
+    UpdateCrosshair()
+    UpdateFOVCircle()
+end)
+
+-- Cleanup
+game.Players.PlayerRemoving:Connect(function(player)
+    if player == LocalPlayer then
+        RestoreCameraControl()
+        
+        for _, connection in pairs(Connections) do
+            if connection then
+                connection:Disconnect()
+            end
+        end
+        
+        target_indicator:Remove()
+        aimlock_indicator:Remove()
+        aimlock_center:Remove()
+        fov_circle:Remove()
+        crosshair_h:Remove()
+        crosshair_v:Remove()
+        status_text:Remove()
+        
+        for _, esp in pairs(ESPObjects) do
+            RemoveESP(esp.Player)
+        end
+    end
+end)
+
+DebugPrint("🔥 FIXED HYBRID AIMLOCK LOADED! 🔥")
+DebugPrint("✅ NEW: HybridCamera method allows free movement!")
+DebugPrint("✅ You can now move and aim at the same time!")
+DebugPrint("🎯 Use HybridCamera for best experience!")
